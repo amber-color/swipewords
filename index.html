@@ -97,10 +97,10 @@
   #legend .l-right{grid-column:3;grid-row:2}
   #legend .l-down{grid-column:2;grid-row:3}
   #legend div.on{color:var(--card);font-weight:600}
-  #legend .l-up.on{background:var(--up)}
-  #legend .l-right.on{background:var(--right)}
-  #legend .l-left.on{background:var(--left)}
-  #legend .l-down.on{background:var(--down)}
+  #legend .l-up.on{background:var(--down)}
+  #legend .l-right.on{background:var(--left)}
+  #legend .l-left.on{background:var(--right)}
+  #legend .l-down.on{background:var(--up)}
 
   /* ---------- answer flash ---------- */
   #answer{
@@ -144,10 +144,10 @@
   <div id="deck"></div>
 
   <div id="legend">
-    <div class="l-up">↑ まったくわからない</div>
-    <div class="l-left">← わかる</div>
-    <div class="l-right">→ 訳が出てこない</div>
-    <div class="l-down">↓ もう出さなくていい</div>
+    <div class="l-up">↑ もう出さなくていい</div>
+    <div class="l-left">← 訳が出てこない</div>
+    <div class="l-right">→ わかる</div>
+    <div class="l-down">↓ まったくわからない</div>
   </div>
 
   <div id="answer">
@@ -244,7 +244,7 @@ const KEY = 'tango-swipe-v1';
 const DAY = 86400000;
 const INTERVALS = [0, 1*DAY, 3*DAY, 7*DAY, 21*DAY];   // ステージ0〜4
 const SESSION_SIZE = 20;
-const REQUEUE = { up:3, right:10 };
+const REQUEUE = { down:3, left:10 };
 const FLASH_MS = 800;
 
 let store = load();
@@ -273,8 +273,8 @@ const legendEls = {
   up: legend.querySelector('.l-up'), right: legend.querySelector('.l-right'),
   left: legend.querySelector('.l-left'), down: legend.querySelector('.l-down')
 };
-const LABEL = { up:'まったくわからない', right:'訳が出てこない', left:'わかる', down:'もう出さなくていい' };
-const COLOR = { up:'var(--up)', right:'var(--right)', left:'var(--left)', down:'var(--down)' };
+const LABEL = { up:'もう出さなくていい', right:'わかる', left:'訳が出てこない', down:'まったくわからない' };
+const COLOR = { up:'var(--down)', right:'var(--left)', left:'var(--right)', down:'var(--up)' };
 
 /* ============ セッション状態 ============ */
 let queue = [];                 // 出題待ちの英単語
@@ -482,10 +482,10 @@ function commit(en, dir){
   const e = entry(en);
   queue.shift();
 
-  if(dir === 'left'){
+  if(dir === 'right'){
     e.stage = Math.min(e.stage + 1, INTERVALS.length - 1);
     e.due = Date.now() + INTERVALS[e.stage];
-  }else if(dir === 'down'){
+  }else if(dir === 'up'){
     e.excluded = true;
   }else{
     e.stage = 0;
@@ -496,7 +496,7 @@ function commit(en, dir){
   results.set(en, dir);
   save();
 
-  if(dir === 'down'){
+  if(dir === 'up'){
     setTimeout(() => { busy = false; render(); }, 300);
   }else{
     setTimeout(() => flashAnswer(en, dir), 260);
@@ -549,10 +549,10 @@ $('undo').onclick = () => {
 /* ============ 結果 ============ */
 function finish(){
   const rows = [
-    ['up','まったくわからない','var(--up)'],
-    ['right','訳が出てこない','var(--right)'],
-    ['left','わかる','var(--left)'],
-    ['down','もう出さなくていい','var(--down)']
+    ['down','まったくわからない','var(--up)'],
+    ['left','訳が出てこない','var(--right)'],
+    ['right','わかる','var(--left)'],
+    ['up','もう出さなくていい','var(--down)']
   ];
   $('tally').innerHTML = rows.map(([k,label,c]) =>
     `<div><i style="background:${c}"></i>${label}<b>${counts[k]}</b></div>`).join('');
