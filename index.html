@@ -39,6 +39,9 @@
   .lead{color:var(--sub);font-size:.92rem;line-height:1.9;margin-top:.6rem}
   .grow{flex:1}
   .big{font-family:var(--en);font-size:3.4rem;font-weight:600;line-height:1;letter-spacing:-.02em}
+  .statRow{display:flex;gap:1.6rem;margin-top:1.3rem;flex-wrap:wrap}
+  .stat b{display:block;font-family:var(--en);font-size:1.7rem;font-weight:600;line-height:1}
+  .stat span{display:block;margin-top:.35rem;font-size:.7rem;color:var(--sub);letter-spacing:.08em}
 
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
   .primary{
@@ -174,9 +177,15 @@
 
   <!-- ホーム -->
   <section class="screen" id="home">
-    <h2>今日の出題</h2>
-    <p class="big" id="dueCount">0</p>
-    <p class="lead" id="dueNote"></p>
+    <h2>ダッシュボード</h2>
+    <p class="big" id="statTotal">0</p>
+    <p class="lead">全単語</p>
+    <div class="statRow">
+      <div class="stat"><b id="statNew">0</b><span>未出題</span></div>
+      <div class="stat"><b id="statUnknown">0</b><span>未知</span></div>
+      <div class="stat"><b id="statForgot">0</b><span>忘却</span></div>
+      <div class="stat"><b id="statKnown">0</b><span>既知</span></div>
+    </div>
     <h2>内訳</h2>
     <div class="bar" id="overviewBar"></div>
     <div class="barLegend" id="overviewLegend"></div>
@@ -394,19 +403,27 @@ function show(name){
   if(name === 'excluded') renderExcluded();
 }
 function renderHome(){
-  const n = dueWords().length;
-  $('dueCount').textContent = n;
   const dir = w => store[w[0]]?.lastDir;
+  const newCount = WORDS.filter(w => !store[w[0]]).length;
+  const unknownCount = WORDS.filter(w => dir(w) === 'down').length;
+  const forgotCount = WORDS.filter(w => dir(w) === 'left').length;
+  const knownCount = WORDS.filter(w => dir(w) === 'right').length;
   const ex = WORDS.filter(w => store[w[0]]?.excluded).length;
-  $('dueNote').textContent = n === 0
-    ? '今日の分は終わりました。また明日。'
-    : `除外中 ${ex} 語。`;
+
+  $('statTotal').textContent = WORDS.length;
+  $('statNew').textContent = newCount;
+  $('statUnknown').textContent = unknownCount;
+  $('statForgot').textContent = forgotCount;
+  $('statKnown').textContent = knownCount;
+  $('statUnknown').style.color = 'var(--up)';
+  $('statForgot').style.color = 'var(--right)';
+  $('statKnown').style.color = 'var(--left)';
 
   const rows = [
-    [WORDS.filter(w => !store[w[0]]).length, '未出題', 'var(--sub)'],
-    [WORDS.filter(w => dir(w) === 'down').length, '未知', 'var(--up)'],
-    [WORDS.filter(w => dir(w) === 'left').length, '忘却', 'var(--right)'],
-    [WORDS.filter(w => dir(w) === 'right').length, '既知', 'var(--left)'],
+    [newCount, '未出題', 'var(--sub)'],
+    [unknownCount, '未知', 'var(--up)'],
+    [forgotCount, '忘却', 'var(--right)'],
+    [knownCount, '既知', 'var(--left)'],
     [ex, '完璧', 'var(--down)']
   ];
   const total = WORDS.length || 1;
