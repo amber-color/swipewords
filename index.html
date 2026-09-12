@@ -160,7 +160,7 @@
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
 
   /* ---------- 今後の出題予定 ---------- */
-  .forecast{display:flex;align-items:flex-end;gap:2px;height:44px;width:100%;margin-top:1.5rem}
+  .forecast{display:flex;align-items:flex-end;gap:2px;height:56px;width:100%;margin-top:1.5rem}
   .forecast span{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--sub);opacity:.45}
   .forecast span.today{background:var(--ink);opacity:1}
   .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
@@ -483,10 +483,10 @@ function renderForecast(){
     if(d >= FORECAST_DAYS) continue;
     days[Math.max(d, 0)]++;
   }
-  // 今日は溜まった分で桁が違うことがあるので、目盛りは明日以降に合わせて今日は振り切らせる
-  const scale = Math.max(...days.slice(1), 1);
+  // 全部同じ目盛りで描く。少ない日が潰れないよう、0でなければ最低限の高さを持たせる
+  const scale = Math.max(...days, 1);
   $('forecast').innerHTML = days.map((n, i) =>
-    `<span class="${i === 0 ? 'today' : ''}" style="height:${n ? Math.min(Math.max(n / scale * 100, 8), 100) : 0}%"></span>`
+    `<span class="${i === 0 ? 'today' : ''}" style="height:${n ? Math.max(n / scale * 100, 14) : 0}%"></span>`
   ).join('');
   $('forecastToday').textContent = days[0] ? `今日 ${days[0]}語` : '今日';
 }
