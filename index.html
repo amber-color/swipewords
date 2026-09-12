@@ -50,7 +50,9 @@
   #home.animate .big,
   #home.animate .lead,
   #home.animate .stat,
-  #home.animate .bar{ animation:riseIn .55s cubic-bezier(.2,.7,.3,1) both }
+  #home.animate .bar,
+  #home.animate .forecast,
+  #home.animate .forecastAxis{ animation:riseIn .55s cubic-bezier(.2,.7,.3,1) both }
   #home.animate .lead{ animation-delay:.05s }
   #home.animate .stat:nth-child(1){ animation-delay:.14s }
   #home.animate .stat:nth-child(2){ animation-delay:.21s }
@@ -58,6 +60,8 @@
   #home.animate .stat:nth-child(4){ animation-delay:.35s }
   #home.animate .stat:nth-child(5){ animation-delay:.42s }
   #home.animate .bar{ animation-delay:.50s }
+  #home.animate .forecast{ animation-delay:.57s }
+  #home.animate .forecastAxis{ animation-delay:.62s }
 
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
   .primary{
@@ -155,6 +159,12 @@
   .bar span{height:100%}
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
 
+  /* ---------- 今後の出題予定 ---------- */
+  .forecast{display:flex;align-items:flex-end;gap:2px;height:44px;width:100%;margin-top:1.5rem}
+  .forecast span{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--sub);opacity:.45}
+  .forecast span.today{background:var(--ink);opacity:1}
+  .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
+
   /* ---------- 出題数ボタン ---------- */
   .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
   .size{
@@ -201,6 +211,8 @@
       <button class="stat" type="button" data-cat="excluded"><b id="statPerfect">0</b><span>完璧</span></button>
     </div>
     <div class="bar" id="overviewBar"></div>
+    <div class="forecast" id="forecast"></div>
+    <div class="forecastAxis"><span id="forecastToday">今日</span><span>2週間後</span></div>
     <div class="grow grow-lg"></div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
@@ -450,6 +462,7 @@ function renderHome(){
     if(count > 0) barHtml += `<span style="width:${count / total * 100}%;background:${cat.color}"></span>`;
   }
   $('overviewBar').innerHTML = barHtml;
+  renderForecast();
 
   // クラスを付け直してアニメーションを頭から再生する（間のreflowが必須）
   const home = $('home');
@@ -457,6 +470,27 @@ function renderHome(){
   void home.offsetWidth;
   home.classList.add('animate');
 }
+// 今後2週間、何語が再出題になるかを日ごとに数える
+// 未出題は予定が無いので含めない。期限切れは今日にまとめ、2週間より先は出さない
+const FORECAST_DAYS = 15;   // 今日から2週間後まで（両端を含めて15本）
+function renderForecast(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = new Array(FORECAST_DAYS).fill(0);
+  for(const [en] of WORDS){
+    const e = store[en];
+    if(!e || e.excluded || !e.lastDir) continue;
+    const d = Math.floor((e.due - today.getTime()) / DAY);
+    if(d >= FORECAST_DAYS) continue;
+    days[Math.max(d, 0)]++;
+  }
+  // 今日は溜まった分で桁が違うことがあるので、目盛りは明日以降に合わせて今日は振り切らせる
+  const scale = Math.max(...days.slice(1), 1);
+  $('forecast').innerHTML = days.map((n, i) =>
+    `<span class="${i === 0 ? 'today' : ''}" style="height:${n ? Math.min(Math.max(n / scale * 100, 8), 100) : 0}%"></span>`
+  ).join('');
+  $('forecastToday').textContent = days[0] ? `今日 ${days[0]}語` : '今日';
+}
+
 let wordListKey = null;
 function showWordList(key){
   wordListKey = key;
