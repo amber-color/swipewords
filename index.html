@@ -110,8 +110,10 @@
   #answer.show{opacity:1;pointer-events:auto}
   #answer .word{font-family:var(--en);font-size:clamp(2.2rem,11vw,3.4rem);font-weight:600;letter-spacing:-.02em}
   #answer .meaning2{font-size:.95rem;color:var(--sub)}
-  #answer .held{font-size:.72rem;letter-spacing:.14em;color:var(--sub);opacity:0}
-  #answer.frozen .held{opacity:1}
+  .answerNav{display:flex;gap:.6rem;margin-top:1rem;width:100%;padding:0 1.6rem}
+  .answerNav button{flex:1;border-radius:999px;padding:.85rem 0;font-size:.92rem;font-weight:600;text-align:center}
+  .answerNav .next{background:var(--ink);color:var(--paper)}
+  .answerNav .back{border:1px solid var(--line);color:var(--sub)}
 
   /* ---------- lists ---------- */
   ul{list-style:none}
@@ -164,7 +166,10 @@
   <div id="answer">
     <div class="word" id="ansWord"></div>
     <div class="meaning2" id="ansMeaning"></div>
-    <div class="held">タップで次へ</div>
+    <div class="answerNav">
+      <button class="back" id="ansBack" type="button">← 戻る</button>
+      <button class="next" id="ansNext" type="button">次へ →</button>
+    </div>
   </div>
 
   <!-- ホーム -->
@@ -290,7 +295,6 @@ const KEY = 'tango-swipe-v1';
 const DAY = 86400000;
 const REVIEW_DELAY = { down:1*DAY, left:2*DAY, right:5*DAY };   // 未知/忘却/既知の再出題までの日数
 const FALLBACK_ORDER = { down:0, left:1, right:2 };             // 枠が余った時の優先度: 未知→忘却→既知
-const FLASH_MS = 800;
 
 let store = load();
 save();
@@ -592,45 +596,39 @@ function commit(en, dir){
   results.set(en, dir);
   save();
 
-  if(dir === 'up'){
-    setTimeout(() => { busy = false; render(); }, 300);
-  }else{
-    setTimeout(() => flashAnswer(en, dir), 260);
-  }
+  setTimeout(() => flashAnswer(en, dir), 260);
 }
 
-/* ============ 答えの一瞬表示 ============ */
+/* ============ 答えの表示（次へ/戻るを押すまで進まない） ============ */
 function flashAnswer(en, dir){
   $('ansWord').textContent = en;
   $('ansWord').style.color = COLOR[dir];
   $('ansMeaning').textContent = JA[en];
   answer.classList.add('show');
-
-  let timer = setTimeout(done, FLASH_MS);
-  answer.onclick = () => {
-    if(timer){ clearTimeout(timer); timer = null; answer.classList.add('frozen'); }
-    else done();
-  };
-  function done(){
-    timer = null;
-    answer.classList.remove('show','frozen');
-    answer.onclick = null;
-    busy = false;
-    render();
-  }
+}
+function closeAnswer(){
+  answer.classList.remove('show');
+  busy = false;
+  render();
 }
 
 /* ============ 戻る ============ */
-$('undo').onclick = () => {
-  if(busy || !history.length) return;
+function undoLast(){
+  if(!history.length) return;
   const h = history.pop();
   queue = h.queue;
   counts = h.counts;
   results = new Map(h.results);
   store[h.en] = h.data;
   save();
+}
+$('undo').onclick = () => {
+  if(busy || !history.length) return;
+  undoLast();
   render();
 };
+$('ansNext').onclick = () => { closeAnswer(); };
+$('ansBack').onclick = () => { undoLast(); closeAnswer(); };
 
 /* ============ 結果 ============ */
 function finish(){
