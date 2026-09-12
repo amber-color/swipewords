@@ -127,6 +127,7 @@
   }
   li.row .en{font-family:var(--en);font-size:1.05rem;font-weight:600}
   li.row .ja{font-size:.82rem;color:var(--sub);margin-left:auto;text-align:right}
+  li.row .score{font-size:.72rem;color:var(--sub);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:2.6rem;text-align:right}
   li.row .restore{border:1px solid var(--line);border-radius:8px;padding:.3rem .8rem;font-size:.74rem;color:var(--sub);margin-left:auto}
   .tally{display:flex;flex-direction:column;gap:.55rem;margin-top:1.2rem}
   .tally div{display:flex;align-items:center;gap:.7rem;font-size:.92rem}
@@ -308,10 +309,13 @@ function load(){
   // （stageが進んでいれば既知、それ以外は忘却だったとみなす）
   for(const en in s){
     const e = s[en];
-    if(e.excluded || e.lastDir) continue;
-    e.lastDir = e.stage > 0 ? 'right' : 'left';
-    e.lastSwipe = e.lastSwipe || e.due || 0;
-    delete e.stage;
+    if(!e.excluded && !e.lastDir){
+      e.lastDir = e.stage > 0 ? 'right' : 'left';
+      e.lastSwipe = e.lastSwipe || e.due || 0;
+      delete e.stage;
+    }
+    // 出題・正解の記録がない古いデータは0から数え始める
+    if(e.seen === undefined){ e.seen = 0; e.correct = 0; e.streak = 0; }
   }
   return s;
 }
@@ -319,7 +323,7 @@ function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
 }
 function entry(en){
-  if(!store[en]) store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0 };
+  if(!store[en]) store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0, seen:0, correct:0, streak:0 };
   return store[en];
 }
 function candidateWords(){
@@ -426,10 +430,13 @@ function showWordList(key){
   $('wordListTitle').textContent = cat.label;
   const list = WORDS.filter(cat.match);
   $('wordListItems').innerHTML = list.length
-    ? list.map(([en,ja]) =>
-        `<li class="row"><span class="en">${en}</span><span class="ja">${ja}</span>` +
-        (key === 'excluded' ? `<button class="restore" data-en="${en}" type="button">戻す</button>` : '') +
-        `</li>`).join('')
+    ? list.map(([en,ja]) => {
+        const e = store[en];
+        const score = e?.seen ? `<span class="score">${e.correct}/${e.seen}</span>` : '';
+        return `<li class="row"><span class="en">${en}</span><span class="ja">${ja}</span>${score}` +
+          (key === 'excluded' ? `<button class="restore" data-en="${en}" type="button">戻す</button>` : '') +
+          `</li>`;
+      }).join('')
     : '<li class="empty">まだありません。</li>';
   show('wordList');
 }
@@ -596,6 +603,10 @@ function commit(en, dir){
 
   e.lastDir = dir;
   e.lastSwipe = Date.now();
+  e.seen++;
+  // 既知・完璧を正解とみなす。連続正解が切れたらstreakは0に戻す
+  if(dir === 'right' || dir === 'up'){ e.correct++; e.streak++; }
+  else e.streak = 0;
 
   if(dir === 'up'){
     e.excluded = true;
@@ -680,7 +691,11 @@ $('wordListItems').onclick = e => {
   const b = e.target.closest('.restore');
   if(!b) return;
   const en = b.dataset.en;
-  store[en] = { due: Date.now() + REVIEW_DELAY.right, excluded:false, lastDir:'right', lastSwipe: Date.now() };
+  const rec = entry(en);   // 出題・正解の記録は残したまま既知に戻す
+  rec.due = Date.now() + REVIEW_DELAY.right;
+  rec.excluded = false;
+  rec.lastDir = 'right';
+  rec.lastSwipe = Date.now();
   save();
   showWordList('excluded');
 };
