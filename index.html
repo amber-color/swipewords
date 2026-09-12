@@ -494,8 +494,10 @@ function attachDrag(card, en){
       // カードの上半分を掴んだか下半分かで回転の向きが変わる
       rotSign = (s.xy[1] - r.top) / r.height < .5 ? 1 : -1;
     }
-    // 14px動いた時点で軸を固定。以降ちらつかない
+    // 14px動いた時点で軸を仮固定。その後は指がはっきり別方向を向いたら切り替える
     if(!axis && Math.hypot(mx, my) > 14) axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+    else if(axis === 'y' && Math.abs(mx) > Math.abs(my) * 1.3) axis = 'x';
+    else if(axis === 'x' && Math.abs(my) > Math.abs(mx) * 1.3) axis = 'y';
 
     const off  = axis === 'y' ? my : mx;
     const dir  = axis === 'y' ? (off > 0 ? 'down' : 'up') : (off > 0 ? 'right' : 'left');
