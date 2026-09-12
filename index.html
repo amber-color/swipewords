@@ -237,7 +237,8 @@ const JA = Object.fromEntries(WORDS);
 /* ============ 保存 ============ */
 const KEY = 'tango-swipe-v1';
 const DAY = 86400000;
-const INTERVALS = [0, 1*DAY, 3*DAY, 7*DAY, 21*DAY];   // ステージ0〜4
+const REVIEW_DELAY = { down:1*DAY, left:2*DAY, right:5*DAY };   // 未知/忘却/既知の再出題までの日数
+const FALLBACK_ORDER = { down:0, left:1, right:2 };             // 枠が余った時の優先度: 未知→忘却→既知
 const SESSION_SIZE = 20;
 const FLASH_MS = 800;
 
@@ -249,14 +250,24 @@ function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
 }
 function entry(en){
-  if(!store[en]) store[en] = { stage:0, due:0, excluded:false };
+  if(!store[en]) store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0 };
   return store[en];
+}
+function candidateWords(){
+  return WORDS.map(w => w[0]).filter(en => !store[en]?.excluded);
 }
 function dueWords(){
   const now = Date.now();
-  return WORDS.map(w => w[0]).filter(en => {
+  return candidateWords().filter(en => {
     const e = store[en];
-    return !e || (!e.excluded && e.due <= now);
+    return !e || e.due <= now;
+  });
+}
+function pendingWords(){
+  const now = Date.now();
+  return candidateWords().filter(en => {
+    const e = store[en];
+    return e && e.due > now;
   });
 }
 
@@ -284,12 +295,24 @@ function shuffle(arr){
   }
 }
 
-function startSession(){
-  const pool = dueWords();
-  shuffle(pool);
+function buildQueue(){
+  const due = dueWords();
+  shuffle(due);
   // 未学習を優先、次に期限切れの古い順（同着はシャッフル済みの順を保つ）
-  pool.sort((a,b) => (store[a]?.due || 0) - (store[b]?.due || 0));
-  queue = pool.slice(0, SESSION_SIZE);
+  due.sort((a,b) => (store[a]?.due || 0) - (store[b]?.due || 0));
+  let list = due.slice(0, SESSION_SIZE);
+  if(list.length < SESSION_SIZE){
+    // 期限切れが足りない分は、未知→忘却→既知の優先度でまだ期限前の単語を補充
+    const rest = pendingWords();
+    shuffle(rest);
+    rest.sort((a,b) => FALLBACK_ORDER[store[a].lastDir] - FALLBACK_ORDER[store[b].lastDir]);
+    list = list.concat(rest.slice(0, SESSION_SIZE - list.length));
+  }
+  return list;
+}
+
+function startSession(){
+  queue = buildQueue();
   shuffle(queue);
   history = []; counts = { up:0, right:0, left:0, down:0 }; results = new Map();
   show('study');
@@ -305,7 +328,7 @@ function show(name){
   if(name === 'excluded') renderExcluded();
 }
 function renderHome(){
-  const n = dueWords().length;
+  const n = buildQueue().length;
   $('dueCount').textContent = n;
   const ex = WORDS.filter(w => store[w[0]]?.excluded).length;
   $('dueNote').textContent = n === 0
@@ -479,14 +502,13 @@ function commit(en, dir){
   const e = entry(en);
   queue.shift();
 
-  if(dir === 'right'){
-    e.stage = Math.min(e.stage + 1, INTERVALS.length - 1);
-    e.due = Date.now() + INTERVALS[e.stage];
-  }else if(dir === 'up'){
+  e.lastDir = dir;
+  e.lastSwipe = Date.now();
+
+  if(dir === 'up'){
     e.excluded = true;
   }else{
-    e.stage = 0;
-    e.due = Date.now();
+    e.due = Date.now() + REVIEW_DELAY[dir];
   }
   counts[dir]++;
   results.set(en, dir);
@@ -551,7 +573,7 @@ function finish(){
 }
 
 /* ============ ボタン ============ */
-$('startBtn').onclick = () => { if(dueWords().length) startSession(); };
+$('startBtn').onclick = () => { if(buildQueue().length) startSession(); };
 $('backHome').onclick = () => show('home');
 $('openExcluded').onclick = () => show('excluded');
 $('closeExcluded').onclick = () => show('home');
@@ -559,7 +581,7 @@ $('excludedList').onclick = e => {
   const b = e.target.closest('.restore');
   if(!b) return;
   const en = b.dataset.en;
-  store[en] = { stage:0, due:0, excluded:false };
+  store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0 };
   save(); renderExcluded();
 };
 $('resetBtn').onclick = () => {
