@@ -612,7 +612,7 @@ function finish(){
   $('tally').innerHTML = rows.map(([k,label,c]) =>
     `<div><i style="background:${c}"></i>${label}<b>${counts[k]}</b></div>`).join('');
 
-  const missed = [...results].filter(([,d]) => d === 'up' || d === 'right').map(([en]) => en);
+  const missed = [...results].filter(([,d]) => d === 'down' || d === 'left').map(([en]) => en);
   $('missedList').innerHTML = missed.length
     ? missed.map(en => `<li class="row"><span class="en">${en}</span><span class="ja">${JA[en]}</span></li>`).join('')
     : '<li class="empty">ありませんでした。</li>';
