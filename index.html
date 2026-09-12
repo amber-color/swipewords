@@ -44,6 +44,23 @@
   .stat b{display:block;font-family:var(--en);font-size:1.6rem;font-weight:600;line-height:1;white-space:nowrap}
   .stat span{display:block;margin-top:.35rem;font-size:.66rem;color:var(--sub);letter-spacing:.04em;white-space:nowrap}
 
+  /* 読み込み時、左の数字から順にジワッと浮かび上がる */
+  @keyframes riseIn{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  #home .big,
+  #home .lead,
+  #home .stat,
+  #home .bar{ animation:riseIn .55s cubic-bezier(.2,.7,.3,1) both }
+  #home .lead{ animation-delay:.05s }
+  #home .stat:nth-child(1){ animation-delay:.14s }
+  #home .stat:nth-child(2){ animation-delay:.21s }
+  #home .stat:nth-child(3){ animation-delay:.28s }
+  #home .stat:nth-child(4){ animation-delay:.35s }
+  #home .stat:nth-child(5){ animation-delay:.42s }
+  #home .bar{ animation-delay:.50s }
+  @media (prefers-reduced-motion: reduce){
+    #home .big, #home .lead, #home .stat, #home .bar{ animation:none }
+  }
+
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
   .primary{
     background:var(--ink);color:var(--paper);border-radius:14px;
