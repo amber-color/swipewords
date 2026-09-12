@@ -126,6 +126,21 @@
   .tally i{width:.6rem;height:.6rem;border-radius:50%;font-style:normal}
   .tally b{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
   .empty{color:var(--sub);font-size:.88rem;padding:.9rem .1rem}
+
+  /* ---------- 内訳バー ---------- */
+  .bar{display:flex;height:.9rem;border-radius:999px;overflow:hidden;background:var(--line);margin-top:.3rem}
+  .bar span{height:100%}
+  .bar span:not(:first-child){border-left:2px solid var(--paper)}
+  .barLegend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin-top:.8rem;font-size:.78rem;color:var(--sub)}
+  .barLegend i{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;margin-right:.35rem;font-style:normal}
+  .barLegend b{color:var(--ink);font-weight:600;margin-left:.3rem;font-variant-numeric:tabular-nums}
+
+  /* ---------- 出題数ボタン ---------- */
+  .sizes{display:flex;gap:.6rem;margin-top:1.2rem}
+  .size{
+    flex:1;background:var(--ink);color:var(--paper);border-radius:999px;
+    padding:.9rem 0;font-size:.95rem;font-weight:600;letter-spacing:.04em;text-align:center;
+  }
 </style>
 </head>
 <body>
@@ -153,15 +168,18 @@
 
   <!-- ホーム -->
   <section class="screen" id="home">
-    <h1>単語スワイプ</h1>
-    <p class="lead">日本語の意味を見て、英単語を思い出す。<br>思い出せた度合いを4方向のスワイプで申告します。</p>
     <h2>今日の出題</h2>
     <p class="big" id="dueCount">0</p>
     <p class="lead" id="dueNote"></p>
     <h2>内訳</h2>
-    <div class="tally" id="overview"></div>
+    <div class="bar" id="overviewBar"></div>
+    <div class="barLegend" id="overviewLegend"></div>
     <div class="grow"></div>
-    <button class="primary" id="startBtn" type="button">はじめる</button>
+    <div class="sizes" id="sizeButtons">
+      <button class="size" type="button" data-size="5">5問</button>
+      <button class="size" type="button" data-size="10">10問</button>
+      <button class="size" type="button" data-size="20">20問</button>
+    </div>
     <button class="ghost" id="openExcluded" type="button">除外した単語</button>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
   </section>
@@ -241,7 +259,6 @@ const KEY = 'tango-swipe-v1';
 const DAY = 86400000;
 const REVIEW_DELAY = { down:1*DAY, left:2*DAY, right:5*DAY };   // 未知/忘却/既知の再出題までの日数
 const FALLBACK_ORDER = { down:0, left:1, right:2 };             // 枠が余った時の優先度: 未知→忘却→既知
-const SESSION_SIZE = 20;
 const FLASH_MS = 800;
 
 let store = load();
@@ -309,24 +326,24 @@ function shuffle(arr){
   }
 }
 
-function buildQueue(){
+function buildQueue(size){
   const due = dueWords();
   shuffle(due);
   // 未学習を優先、次に期限切れの古い順（同着はシャッフル済みの順を保つ）
   due.sort((a,b) => (store[a]?.due || 0) - (store[b]?.due || 0));
-  let list = due.slice(0, SESSION_SIZE);
-  if(list.length < SESSION_SIZE){
+  let list = due.slice(0, size);
+  if(list.length < size){
     // 期限切れが足りない分は、未知→忘却→既知の優先度でまだ期限前の単語を補充
     const rest = pendingWords();
     shuffle(rest);
     rest.sort((a,b) => FALLBACK_ORDER[store[a].lastDir] - FALLBACK_ORDER[store[b].lastDir]);
-    list = list.concat(rest.slice(0, SESSION_SIZE - list.length));
+    list = list.concat(rest.slice(0, size - list.length));
   }
   return list;
 }
 
-function startSession(){
-  queue = buildQueue();
+function startSession(size){
+  queue = buildQueue(size);
   shuffle(queue);
   history = []; counts = { up:0, right:0, left:0, down:0 }; results = new Map();
   show('study');
@@ -342,13 +359,13 @@ function show(name){
   if(name === 'excluded') renderExcluded();
 }
 function renderHome(){
-  const n = buildQueue().length;
+  const n = dueWords().length;
   $('dueCount').textContent = n;
   const dir = w => store[w[0]]?.lastDir;
   const ex = WORDS.filter(w => store[w[0]]?.excluded).length;
   $('dueNote').textContent = n === 0
     ? '今日の分は終わりました。また明日。'
-    : `1回あたり最大${SESSION_SIZE}枚。除外中 ${ex} 語。`;
+    : `除外中 ${ex} 語。`;
 
   const rows = [
     [WORDS.filter(w => !store[w[0]]).length, '未出題', 'var(--sub)'],
@@ -357,8 +374,13 @@ function renderHome(){
     [WORDS.filter(w => dir(w) === 'right').length, '既知', 'var(--left)'],
     [ex, '完璧', 'var(--down)']
   ];
-  $('overview').innerHTML = rows.map(([count,label,c]) =>
-    `<div><i style="background:${c}"></i>${label}<b>${count}</b></div>`).join('');
+  const total = WORDS.length || 1;
+  $('overviewBar').innerHTML = rows
+    .filter(([count]) => count > 0)
+    .map(([count,,c]) => `<span style="width:${count / total * 100}%;background:${c}"></span>`)
+    .join('');
+  $('overviewLegend').innerHTML = rows.map(([count,label,c]) =>
+    `<span><i style="background:${c}"></i>${label}<b>${count}</b></span>`).join('');
 }
 function renderExcluded(){
   const list = WORDS.filter(w => store[w[0]]?.excluded);
@@ -598,7 +620,12 @@ function finish(){
 }
 
 /* ============ ボタン ============ */
-$('startBtn').onclick = () => { if(buildQueue().length) startSession(); };
+$('sizeButtons').onclick = e => {
+  const b = e.target.closest('button[data-size]');
+  if(!b) return;
+  const size = parseInt(b.dataset.size, 10);
+  if(buildQueue(size).length) startSession(size);
+};
 $('backHome').onclick = () => show('home');
 $('openExcluded').onclick = () => show('excluded');
 $('closeExcluded').onclick = () => show('home');
