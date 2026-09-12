@@ -34,14 +34,15 @@
     display:flex;flex-direction:column;padding:2rem 1.4rem;overflow-y:auto;
   }
   .screen[hidden]{display:none}
+  #home{align-items:center;text-align:center}
   .screen h1{font-size:1.5rem;font-weight:600;letter-spacing:.02em}
   .screen h2{font-size:.78rem;font-weight:600;letter-spacing:.16em;color:var(--sub);margin:1.6rem 0 .5rem}
   .lead{color:var(--sub);font-size:.92rem;line-height:1.9;margin-top:.6rem}
   .grow{flex:1}
   .big{font-family:var(--en);font-size:3.4rem;font-weight:600;line-height:1;letter-spacing:-.02em}
-  .statRow{display:flex;gap:1.6rem;margin-top:1.3rem;flex-wrap:wrap}
-  .stat b{display:block;font-family:var(--en);font-size:1.7rem;font-weight:600;line-height:1}
-  .stat span{display:block;margin-top:.35rem;font-size:.7rem;color:var(--sub);letter-spacing:.08em}
+  .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;margin-top:1.3rem;width:100%}
+  .stat b{display:block;font-family:var(--en);font-size:1.35rem;font-weight:600;line-height:1;white-space:nowrap}
+  .stat span{display:block;margin-top:.35rem;font-size:.66rem;color:var(--sub);letter-spacing:.04em;white-space:nowrap}
 
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
   .primary{
@@ -51,7 +52,7 @@
   }
   .ghost{
     border:1px solid var(--line);border-radius:999px;padding:.7rem 1.3rem;
-    font-size:.86rem;color:var(--sub);align-self:flex-start;margin-top:.7rem;
+    font-size:.86rem;color:var(--sub);margin-top:.7rem;
   }
 
   /* ---------- header ---------- */
@@ -134,15 +135,12 @@
   .empty{color:var(--sub);font-size:.88rem;padding:.9rem .1rem}
 
   /* ---------- 内訳バー ---------- */
-  .bar{display:flex;height:.9rem;border-radius:999px;overflow:hidden;background:var(--line);margin-top:.3rem}
+  .bar{display:flex;height:.9rem;border-radius:999px;overflow:hidden;background:var(--line);margin-top:1.3rem;width:100%}
   .bar span{height:100%}
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
-  .barLegend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin-top:.8rem;font-size:.78rem;color:var(--sub)}
-  .barLegend i{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;margin-right:.35rem;font-style:normal}
-  .barLegend b{color:var(--ink);font-weight:600;margin-left:.3rem;font-variant-numeric:tabular-nums}
 
   /* ---------- 出題数ボタン ---------- */
-  .sizes{display:flex;gap:.6rem;margin-top:1.2rem}
+  .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
   .size{
     flex:1;background:var(--ink);color:var(--paper);border-radius:999px;
     padding:.9rem 0;font-size:.95rem;font-weight:600;letter-spacing:.04em;text-align:center;
@@ -177,7 +175,6 @@
 
   <!-- ホーム -->
   <section class="screen" id="home">
-    <h2>ダッシュボード</h2>
     <p class="big" id="statTotal">0</p>
     <p class="lead">全単語</p>
     <div class="statRow">
@@ -185,10 +182,9 @@
       <div class="stat"><b id="statUnknown">0</b><span>未知</span></div>
       <div class="stat"><b id="statForgot">0</b><span>忘却</span></div>
       <div class="stat"><b id="statKnown">0</b><span>既知</span></div>
+      <div class="stat"><b id="statPerfect">0</b><span>完璧</span></div>
     </div>
-    <h2>内訳</h2>
     <div class="bar" id="overviewBar"></div>
-    <div class="barLegend" id="overviewLegend"></div>
     <div class="grow"></div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
@@ -415,24 +411,24 @@ function renderHome(){
   $('statUnknown').textContent = unknownCount;
   $('statForgot').textContent = forgotCount;
   $('statKnown').textContent = knownCount;
+  $('statPerfect').textContent = ex;
   $('statUnknown').style.color = 'var(--up)';
   $('statForgot').style.color = 'var(--right)';
   $('statKnown').style.color = 'var(--left)';
+  $('statPerfect').style.color = 'var(--down)';
 
   const rows = [
-    [newCount, '未出題', 'var(--sub)'],
-    [unknownCount, '未知', 'var(--up)'],
-    [forgotCount, '忘却', 'var(--right)'],
-    [knownCount, '既知', 'var(--left)'],
-    [ex, '完璧', 'var(--down)']
+    [newCount, 'var(--sub)'],
+    [unknownCount, 'var(--up)'],
+    [forgotCount, 'var(--right)'],
+    [knownCount, 'var(--left)'],
+    [ex, 'var(--down)']
   ];
   const total = WORDS.length || 1;
   $('overviewBar').innerHTML = rows
     .filter(([count]) => count > 0)
-    .map(([count,,c]) => `<span style="width:${count / total * 100}%;background:${c}"></span>`)
+    .map(([count,c]) => `<span style="width:${count / total * 100}%;background:${c}"></span>`)
     .join('');
-  $('overviewLegend').innerHTML = rows.map(([count,label,c]) =>
-    `<span><i style="background:${c}"></i>${label}<b>${count}</b></span>`).join('');
 }
 function renderExcluded(){
   const list = WORDS.filter(w => store[w[0]]?.excluded);
