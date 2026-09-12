@@ -146,7 +146,6 @@
   }
   li.row .en{font-family:var(--en);font-size:1.05rem;font-weight:600}
   li.row .ja{font-size:.82rem;color:var(--sub);margin-left:auto;text-align:right}
-  li.row .score{font-size:.72rem;color:var(--sub);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:2.6rem;text-align:right}
   li.row .restore{border:1px solid var(--line);border-radius:8px;padding:.3rem .8rem;font-size:.74rem;color:var(--sub);margin-left:auto}
   .tally{display:flex;flex-direction:column;gap:.55rem;margin-top:1.2rem}
   .tally div{display:flex;align-items:center;gap:.7rem;font-size:.92rem}
@@ -498,13 +497,10 @@ function showWordList(key){
   $('wordListTitle').textContent = cat.label;
   const list = WORDS.filter(cat.match);
   $('wordListItems').innerHTML = list.length
-    ? list.map(([en,ja]) => {
-        const e = store[en];
-        const score = e?.seen ? `<span class="score">${e.correct}/${e.seen}</span>` : '';
-        return `<li class="row"><span class="en">${en}</span><span class="ja">${ja}</span>${score}` +
-          (key === 'excluded' ? `<button class="restore" data-en="${en}" type="button">戻す</button>` : '') +
-          `</li>`;
-      }).join('')
+    ? list.map(([en,ja]) =>
+        `<li class="row"><span class="en">${en}</span><span class="ja">${ja}</span>` +
+        (key === 'excluded' ? `<button class="restore" data-en="${en}" type="button">戻す</button>` : '') +
+        `</li>`).join('')
     : '<li class="empty">まだありません。</li>';
   show('wordList');
 }
