@@ -277,15 +277,20 @@ let counts = { up:0, right:0, left:0, down:0 };
 let results = new Map();        // en -> 最後に選んだ方向
 let busy = false;               // 答え表示中などの入力ロック
 
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = (Math.random() * (i+1)) | 0;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
 function startSession(){
   const pool = dueWords();
-  // 未学習を優先、次に期限切れの古い順
+  shuffle(pool);
+  // 未学習を優先、次に期限切れの古い順（同着はシャッフル済みの順を保つ）
   pool.sort((a,b) => (store[a]?.due || 0) - (store[b]?.due || 0));
   queue = pool.slice(0, SESSION_SIZE);
-  for(let i = queue.length - 1; i > 0; i--){
-    const j = (Math.random() * (i+1)) | 0;
-    [queue[i], queue[j]] = [queue[j], queue[i]];
-  }
+  shuffle(queue);
   history = []; counts = { up:0, right:0, left:0, down:0 }; results = new Map();
   show('study');
   render();
