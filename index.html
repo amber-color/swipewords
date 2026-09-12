@@ -11,10 +11,10 @@
     --ink:#22201B;
     --sub:#78736A;
     --line:#DFDACE;
-    --up:#BC442C;      /* まったくわからない */
-    --right:#C0871C;   /* 訳が出てこない */
-    --left:#33755F;    /* わかる */
-    --down:#2C5A88;    /* もう出さなくていい */
+    --up:#BC442C;      /* 未知 */
+    --right:#C0871C;   /* 忘却 */
+    --left:#33755F;    /* 既知 */
+    --down:#2C5A88;    /* 完璧 */
     --jp:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic Medium",Meiryo,sans-serif;
     --en:"Charter","Iowan Old Style","Georgia",serif;
   }
@@ -140,10 +140,10 @@
   <div id="deck"></div>
 
   <div id="legend">
-    <div class="l-up">↑ もう出さなくていい</div>
-    <div class="l-left">← 訳が出てこない</div>
-    <div class="l-right">→ わかる</div>
-    <div class="l-down">↓ まったくわからない</div>
+    <div class="l-up">↑ 完璧</div>
+    <div class="l-left">← 忘却</div>
+    <div class="l-right">→ 既知</div>
+    <div class="l-down">↓ 未知</div>
   </div>
 
   <div id="answer">
@@ -268,7 +268,7 @@ const legendEls = {
   up: legend.querySelector('.l-up'), right: legend.querySelector('.l-right'),
   left: legend.querySelector('.l-left'), down: legend.querySelector('.l-down')
 };
-const LABEL = { up:'もう出さなくていい', right:'わかる', left:'訳が出てこない', down:'まったくわからない' };
+const LABEL = { up:'完璧', right:'既知', left:'忘却', down:'未知' };
 const COLOR = { up:'var(--down)', right:'var(--left)', left:'var(--right)', down:'var(--up)' };
 
 /* ============ セッション状態 ============ */
@@ -532,10 +532,10 @@ $('undo').onclick = () => {
 /* ============ 結果 ============ */
 function finish(){
   const rows = [
-    ['down','まったくわからない','var(--up)'],
-    ['left','訳が出てこない','var(--right)'],
-    ['right','わかる','var(--left)'],
-    ['up','もう出さなくていい','var(--down)']
+    ['down','未知','var(--up)'],
+    ['left','忘却','var(--right)'],
+    ['right','既知','var(--left)'],
+    ['up','完璧','var(--down)']
   ];
   $('tally').innerHTML = rows.map(([k,label,c]) =>
     `<div><i style="background:${c}"></i>${label}<b>${counts[k]}</b></div>`).join('');
