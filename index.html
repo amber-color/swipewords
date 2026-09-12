@@ -245,8 +245,20 @@ const SESSION_SIZE = 20;
 const FLASH_MS = 800;
 
 let store = load();
+save();
 function load(){
-  try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ return {}; }
+  let s;
+  try{ s = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ s = {}; }
+  // 開発中の仕様変更で lastDir を持たない古いデータを補完する
+  // （stageが進んでいれば既知、それ以外は忘却だったとみなす）
+  for(const en in s){
+    const e = s[en];
+    if(e.excluded || e.lastDir) continue;
+    e.lastDir = e.stage > 0 ? 'right' : 'left';
+    e.lastSwipe = e.lastSwipe || e.due || 0;
+    delete e.stage;
+  }
+  return s;
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
