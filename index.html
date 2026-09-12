@@ -297,8 +297,14 @@ const JA = Object.fromEntries(WORDS);
 /* ============ 保存 ============ */
 const KEY = 'tango-swipe-v1';
 const DAY = 86400000;
-const REVIEW_DELAY = { down:1*DAY, left:2*DAY, right:5*DAY };   // 未知/忘却/既知の再出題までの日数
-const FALLBACK_ORDER = { down:0, left:1, right:2 };             // 枠が余った時の優先度: 未知→忘却→既知
+// 未知・忘却は日を置かずに再出題する。既知だけ連続正解の回数ぶん間隔を延ばす
+const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
+// 出題セットに入れる優先度: 未出題→未知→忘却→既知
+const PRIORITY = { down:1, left:2, right:3 };
+// 連続正解1回目で3日、以降7/14/30日と延び、5回目以降は60日で頭打ち
+function knownDelay(streak){
+  return KNOWN_STEPS[Math.min(Math.max(streak, 1), KNOWN_STEPS.length) - 1];
+}
 
 let store = load();
 save();
@@ -368,17 +374,23 @@ function shuffle(arr){
   }
 }
 
+// 未出題は0、以降は未知→忘却→既知の順
+function priority(en){
+  const e = store[en];
+  return e?.lastDir ? PRIORITY[e.lastDir] : 0;
+}
+
 function buildQueue(size){
   const due = dueWords();
   shuffle(due);
-  // 未学習を優先、次に期限切れの古い順（同着はシャッフル済みの順を保つ）
-  due.sort((a,b) => (store[a]?.due || 0) - (store[b]?.due || 0));
+  // 優先度順に。同じ優先度の中はシャッフル済みの順を保つ
+  due.sort((a,b) => priority(a) - priority(b));
   let list = due.slice(0, size);
   if(list.length < size){
-    // 期限切れが足りない分は、未知→忘却→既知の優先度でまだ期限前の単語を補充
+    // 期限切れが足りない分は、まだ期限前の単語を同じ優先度で補充
     const rest = pendingWords();
     shuffle(rest);
-    rest.sort((a,b) => FALLBACK_ORDER[store[a].lastDir] - FALLBACK_ORDER[store[b].lastDir]);
+    rest.sort((a,b) => priority(a) - priority(b));
     list = list.concat(rest.slice(0, size - list.length));
   }
   return list;
@@ -611,7 +623,8 @@ function commit(en, dir){
   if(dir === 'up'){
     e.excluded = true;
   }else{
-    e.due = Date.now() + REVIEW_DELAY[dir];
+    // 未知・忘却は即座に、既知は連続正解に応じて先送り
+    e.due = Date.now() + (dir === 'right' ? knownDelay(e.streak) : 0);
   }
   counts[dir]++;
   results.set(en, dir);
@@ -692,7 +705,7 @@ $('wordListItems').onclick = e => {
   if(!b) return;
   const en = b.dataset.en;
   const rec = entry(en);   // 出題・正解の記録は残したまま既知に戻す
-  rec.due = Date.now() + REVIEW_DELAY.right;
+  rec.due = Date.now() + knownDelay(rec.streak);
   rec.excluded = false;
   rec.lastDir = 'right';
   rec.lastSwipe = Date.now();
