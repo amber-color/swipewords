@@ -328,6 +328,8 @@ const DAY = 86400000;
 const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
 // 出題セットに入れる優先度: 未出題→未知→忘却→既知
 const PRIORITY = { down:1, left:2, right:3 };
+// 1セッションのうち未出題に回す割合の上限（20問なら5語）。残りは復習に使う
+const NEW_RATIO = 0.25;
 // 連続正解1回目で3日、以降7/14/30日と延び、5回目以降は60日で頭打ち
 function knownDelay(streak){
   return KNOWN_STEPS[Math.min(Math.max(streak, 1), KNOWN_STEPS.length) - 1];
@@ -409,12 +411,21 @@ function priority(en){
 
 function buildQueue(size){
   const due = dueWords();
-  shuffle(due);
-  // 優先度順に。同じ優先度の中はシャッフル済みの順を保つ
-  due.sort((a,b) => priority(a) - priority(b));
-  let list = due.slice(0, size);
+  const fresh = due.filter(en => !store[en]);   // 未出題
+  const review = due.filter(en => store[en]);   // 復習（期限到来）
+  shuffle(fresh);
+  shuffle(review);
+  // 未知→忘却→既知。同じ優先度の中はシャッフル済みの順を保つ
+  review.sort((a,b) => priority(a) - priority(b));
+
+  // 未出題が大量にあっても復習が押し出されないよう、1セッションの新語数に上限を設ける
+  const cap = Math.max(1, Math.round(size * NEW_RATIO));
+  let list = fresh.slice(0, cap);
+  list = list.concat(review.slice(0, size - list.length));
+  // 復習が少ない時は残りを新語で埋める
+  if(list.length < size) list = list.concat(fresh.slice(cap, cap + size - list.length));
+  // それでも足りなければ、まだ期限前の単語を優先度順に補充
   if(list.length < size){
-    // 期限切れが足りない分は、まだ期限前の単語を同じ優先度で補充
     const rest = pendingWords();
     shuffle(rest);
     rest.sort((a,b) => priority(a) - priority(b));
