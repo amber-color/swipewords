@@ -39,7 +39,6 @@
   .screen h2{font-size:.78rem;font-weight:600;letter-spacing:.16em;color:var(--sub);margin:1.6rem 0 .5rem}
   .lead{color:var(--sub);font-size:.92rem;line-height:1.9;margin-top:.6rem}
   .grow{flex:1}
-  .grow-lg{flex:2}   /* 上の余白を厚めにして出題ボタンを下寄りの届きやすい位置に */
   .big{font-family:var(--en);font-size:3.4rem;font-weight:600;line-height:1;letter-spacing:-.02em}
   .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;margin-top:1.3rem;width:100%}
   .stat b{display:block;font-family:var(--en);font-size:1.6rem;font-weight:600;line-height:1;white-space:nowrap}
@@ -210,9 +209,10 @@
       <button class="stat" type="button" data-cat="excluded"><b id="statPerfect">0</b><span>完璧</span></button>
     </div>
     <div class="bar" id="overviewBar"></div>
+    <div class="grow"></div>
     <div class="forecast" id="forecast"></div>
     <div class="forecastAxis"><span id="forecastToday">今日</span><span>2週間後</span></div>
-    <div class="grow grow-lg"></div>
+    <div class="grow"></div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
       <button class="size" type="button" data-size="10">10問</button>
