@@ -57,12 +57,13 @@
   }
   header .count{font-variant-numeric:tabular-nums;letter-spacing:.08em}
   header .spacer{margin-left:auto}
-  #undo{
+  #undo,#shuffle{
     display:flex;align-items:center;gap:.35rem;
     border:1px solid var(--line);border-radius:999px;
     padding:.45rem .95rem;font-size:.8rem;color:var(--sub);
   }
-  #undo[disabled]{opacity:.3}
+  #undo[disabled],#shuffle[disabled]{opacity:.3}
+  header nav{display:flex;gap:.5rem}
 
   /* ---------- deck ---------- */
   #deck{position:relative;flex:1;margin:.2rem 1.1rem 0}
@@ -134,7 +135,10 @@
   <header>
     <span class="count">残り <b id="remain">0</b></span>
     <span class="spacer"></span>
-    <button id="undo" type="button" disabled>← 戻る</button>
+    <nav>
+      <button id="shuffle" type="button" disabled>シャッフル</button>
+      <button id="undo" type="button" disabled>← 戻る</button>
+    </nav>
   </header>
 
   <div id="deck"></div>
@@ -344,6 +348,7 @@ function stopAll(c){ for(const k in c.anim) c.anim[k] && c.anim[k].stop(); }
 function render(){
   $('remain').textContent = queue.length;
   $('undo').disabled = history.length === 0 || busy;
+  $('shuffle').disabled = queue.length < 2 || busy;
   if(gesture){ gesture.destroy(); gesture = null; }
   cards.forEach(stopAll);
   deck.innerHTML = '';
@@ -518,6 +523,16 @@ function flashAnswer(en, dir){
     render();
   }
 }
+
+/* ============ シャッフル ============ */
+$('shuffle').onclick = () => {
+  if(busy || queue.length < 2) return;
+  for(let i = queue.length - 1; i > 0; i--){
+    const j = (Math.random() * (i+1)) | 0;
+    [queue[i], queue[j]] = [queue[j], queue[i]];
+  }
+  render();
+};
 
 /* ============ 戻る ============ */
 $('undo').onclick = () => {
