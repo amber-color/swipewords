@@ -40,8 +40,8 @@
   .lead{color:var(--sub);font-size:.92rem;line-height:1.9;margin-top:.6rem}
   .grow{flex:1}
   .big{font-family:var(--en);font-size:3.4rem;font-weight:600;line-height:1;letter-spacing:-.02em}
-  .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;margin-top:1.3rem;width:100%}
-  .stat b{display:block;font-family:var(--en);font-size:1.35rem;font-weight:600;line-height:1;white-space:nowrap}
+  .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;margin-top:1.3rem;width:100%}
+  .stat b{display:block;font-family:var(--en);font-size:1.6rem;font-weight:600;line-height:1;white-space:nowrap}
   .stat span{display:block;margin-top:.35rem;font-size:.66rem;color:var(--sub);letter-spacing:.04em;white-space:nowrap}
 
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
@@ -177,12 +177,12 @@
   <section class="screen" id="home">
     <p class="big" id="statTotal">0</p>
     <p class="lead">全単語</p>
-    <div class="statRow">
-      <div class="stat"><b id="statNew">0</b><span>未出題</span></div>
-      <div class="stat"><b id="statUnknown">0</b><span>未知</span></div>
-      <div class="stat"><b id="statForgot">0</b><span>忘却</span></div>
-      <div class="stat"><b id="statKnown">0</b><span>既知</span></div>
-      <div class="stat"><b id="statPerfect">0</b><span>完璧</span></div>
+    <div class="statRow" id="statRow">
+      <button class="stat" type="button" data-cat="new"><b id="statNew">0</b><span>未出題</span></button>
+      <button class="stat" type="button" data-cat="down"><b id="statUnknown">0</b><span>未知</span></button>
+      <button class="stat" type="button" data-cat="left"><b id="statForgot">0</b><span>忘却</span></button>
+      <button class="stat" type="button" data-cat="right"><b id="statKnown">0</b><span>既知</span></button>
+      <button class="stat" type="button" data-cat="excluded"><b id="statPerfect">0</b><span>完璧</span></button>
     </div>
     <div class="bar" id="overviewBar"></div>
     <div class="grow"></div>
@@ -191,7 +191,6 @@
       <button class="size" type="button" data-size="10">10問</button>
       <button class="size" type="button" data-size="20">20問</button>
     </div>
-    <button class="ghost" id="openExcluded" type="button">除外した単語</button>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
   </section>
 
@@ -205,13 +204,12 @@
     <button class="primary" id="backHome" type="button">ホームへ</button>
   </section>
 
-  <!-- 除外リスト -->
-  <section class="screen" id="excluded" hidden>
-    <h1>除外した単語</h1>
-    <p class="lead">下スワイプで卒業させた単語です。戻すとまた出題されます。</p>
-    <ul id="excludedList"></ul>
+  <!-- 単語一覧 -->
+  <section class="screen" id="wordList" hidden>
+    <h1 id="wordListTitle"></h1>
+    <ul id="wordListItems"></ul>
     <div class="grow"></div>
-    <button class="primary" id="closeExcluded" type="button">戻る</button>
+    <button class="primary" id="closeWordList" type="button">戻る</button>
   </section>
 </div>
 
@@ -391,52 +389,49 @@ function startSession(size){
 }
 
 /* ============ 画面切り替え ============ */
+/* カテゴリ別の集計・一覧・タップ時の絞り込みで共有する定義 */
+const CATEGORIES = {
+  new:      { label:'未出題', color:'var(--sub)',   match: w => !store[w[0]] },
+  down:     { label:'未知',   color:'var(--up)',    match: w => store[w[0]]?.lastDir === 'down' },
+  left:     { label:'忘却',   color:'var(--right)', match: w => store[w[0]]?.lastDir === 'left' },
+  right:    { label:'既知',   color:'var(--left)',  match: w => store[w[0]]?.lastDir === 'right' },
+  excluded: { label:'完璧',   color:'var(--down)',  match: w => store[w[0]]?.excluded }
+};
+const STAT_EL = { new:'statNew', down:'statUnknown', left:'statForgot', right:'statKnown', excluded:'statPerfect' };
+
 function show(name){
-  $('home').hidden   = name !== 'home';
-  $('result').hidden = name !== 'result';
-  $('excluded').hidden = name !== 'excluded';
+  $('home').hidden     = name !== 'home';
+  $('result').hidden   = name !== 'result';
+  $('wordList').hidden = name !== 'wordList';
   if(name === 'home') renderHome();
-  if(name === 'excluded') renderExcluded();
 }
 function renderHome(){
-  const dir = w => store[w[0]]?.lastDir;
-  const newCount = WORDS.filter(w => !store[w[0]]).length;
-  const unknownCount = WORDS.filter(w => dir(w) === 'down').length;
-  const forgotCount = WORDS.filter(w => dir(w) === 'left').length;
-  const knownCount = WORDS.filter(w => dir(w) === 'right').length;
-  const ex = WORDS.filter(w => store[w[0]]?.excluded).length;
-
   $('statTotal').textContent = WORDS.length;
-  $('statNew').textContent = newCount;
-  $('statUnknown').textContent = unknownCount;
-  $('statForgot').textContent = forgotCount;
-  $('statKnown').textContent = knownCount;
-  $('statPerfect').textContent = ex;
-  $('statUnknown').style.color = 'var(--up)';
-  $('statForgot').style.color = 'var(--right)';
-  $('statKnown').style.color = 'var(--left)';
-  $('statPerfect').style.color = 'var(--down)';
-
-  const rows = [
-    [newCount, 'var(--sub)'],
-    [unknownCount, 'var(--up)'],
-    [forgotCount, 'var(--right)'],
-    [knownCount, 'var(--left)'],
-    [ex, 'var(--down)']
-  ];
   const total = WORDS.length || 1;
-  $('overviewBar').innerHTML = rows
-    .filter(([count]) => count > 0)
-    .map(([count,c]) => `<span style="width:${count / total * 100}%;background:${c}"></span>`)
-    .join('');
+  let barHtml = '';
+  for(const key in CATEGORIES){
+    const cat = CATEGORIES[key];
+    const count = WORDS.filter(cat.match).length;
+    const el = $(STAT_EL[key]);
+    el.textContent = count;
+    if(key !== 'new') el.style.color = cat.color;
+    if(count > 0) barHtml += `<span style="width:${count / total * 100}%;background:${cat.color}"></span>`;
+  }
+  $('overviewBar').innerHTML = barHtml;
 }
-function renderExcluded(){
-  const list = WORDS.filter(w => store[w[0]]?.excluded);
-  $('excludedList').innerHTML = list.length
+let wordListKey = null;
+function showWordList(key){
+  wordListKey = key;
+  const cat = CATEGORIES[key];
+  $('wordListTitle').textContent = cat.label;
+  const list = WORDS.filter(cat.match);
+  $('wordListItems').innerHTML = list.length
     ? list.map(([en,ja]) =>
         `<li class="row"><span class="en">${en}</span><span class="ja">${ja}</span>` +
-        `<button class="restore" data-en="${en}" type="button">戻す</button></li>`).join('')
+        (key === 'excluded' ? `<button class="restore" data-en="${en}" type="button">戻す</button>` : '') +
+        `</li>`).join('')
     : '<li class="empty">まだありません。</li>';
+  show('wordList');
 }
 
 /* ============ カード描画 ============ */
@@ -675,14 +670,19 @@ $('sizeButtons').onclick = e => {
   if(buildQueue(size).length) startSession(size);
 };
 $('backHome').onclick = () => show('home');
-$('openExcluded').onclick = () => show('excluded');
-$('closeExcluded').onclick = () => show('home');
-$('excludedList').onclick = e => {
+$('statRow').onclick = e => {
+  const b = e.target.closest('button[data-cat]');
+  if(!b) return;
+  showWordList(b.dataset.cat);
+};
+$('closeWordList').onclick = () => show('home');
+$('wordListItems').onclick = e => {
   const b = e.target.closest('.restore');
   if(!b) return;
   const en = b.dataset.en;
-  store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0 };
-  save(); renderExcluded();
+  store[en] = { due: Date.now() + REVIEW_DELAY.right, excluded:false, lastDir:'right', lastSwipe: Date.now() };
+  save();
+  showWordList('excluded');
 };
 $('resetBtn').onclick = () => {
   if(!confirm('すべての進捗を消します。よろしいですか？')) return;
