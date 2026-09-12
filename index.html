@@ -158,6 +158,8 @@
     <h2>今日の出題</h2>
     <p class="big" id="dueCount">0</p>
     <p class="lead" id="dueNote"></p>
+    <h2>内訳</h2>
+    <div class="tally" id="overview"></div>
     <div class="grow"></div>
     <button class="primary" id="startBtn" type="button">はじめる</button>
     <button class="ghost" id="openExcluded" type="button">除外した単語</button>
@@ -330,10 +332,21 @@ function show(name){
 function renderHome(){
   const n = buildQueue().length;
   $('dueCount').textContent = n;
+  const dir = w => store[w[0]]?.lastDir;
   const ex = WORDS.filter(w => store[w[0]]?.excluded).length;
   $('dueNote').textContent = n === 0
     ? '今日の分は終わりました。また明日。'
     : `1回あたり最大${SESSION_SIZE}枚。除外中 ${ex} 語。`;
+
+  const rows = [
+    [WORDS.filter(w => !store[w[0]]).length, '未出題', 'var(--sub)'],
+    [WORDS.filter(w => dir(w) === 'down').length, '未知', 'var(--up)'],
+    [WORDS.filter(w => dir(w) === 'left').length, '忘却', 'var(--right)'],
+    [WORDS.filter(w => dir(w) === 'right').length, '既知', 'var(--left)'],
+    [ex, '完璧', 'var(--down)']
+  ];
+  $('overview').innerHTML = rows.map(([count,label,c]) =>
+    `<div><i style="background:${c}"></i>${label}<b>${count}</b></div>`).join('');
 }
 function renderExcluded(){
   const list = WORDS.filter(w => store[w[0]]?.excluded);
