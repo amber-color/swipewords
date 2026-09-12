@@ -46,12 +46,12 @@
 
   button{font-family:inherit;font-size:1rem;border:0;background:none;color:inherit;cursor:pointer}
   .primary{
-    background:var(--ink);color:var(--paper);border-radius:999px;
+    background:var(--ink);color:var(--paper);border-radius:14px;
     padding:1rem 2rem;font-size:1rem;font-weight:600;letter-spacing:.06em;
     align-self:stretch;margin-top:1.2rem;
   }
   .ghost{
-    border:1px solid var(--line);border-radius:999px;padding:.7rem 1.3rem;
+    border:1px solid var(--line);border-radius:14px;padding:.7rem 1.3rem;
     font-size:.86rem;color:var(--sub);margin-top:.7rem;
   }
 
@@ -64,7 +64,7 @@
   header .spacer{margin-left:auto}
   #undo{
     display:flex;align-items:center;gap:.35rem;
-    border:1px solid var(--line);border-radius:999px;
+    border:1px solid var(--line);border-radius:10px;
     padding:.45rem .95rem;font-size:.8rem;color:var(--sub);
   }
   #undo[disabled]{opacity:.3}
@@ -84,7 +84,7 @@
   .stamp{
     position:absolute;top:1.4rem;left:50%;transform:translateX(-50%);
     font-size:.84rem;font-weight:600;letter-spacing:.12em;
-    border:2px solid currentColor;border-radius:999px;
+    border:2px solid currentColor;border-radius:8px;
     padding:.4rem 1.1rem;opacity:0;transition:opacity .1s linear;
   }
 
@@ -115,7 +115,7 @@
   #answer .word{font-family:var(--en);font-size:clamp(2.2rem,11vw,3.4rem);font-weight:600;letter-spacing:-.02em}
   #answer .meaning2{font-size:.95rem;color:var(--sub)}
   .answerNav{display:flex;gap:.6rem;margin-top:1rem;width:100%;padding:0 1.6rem}
-  .answerNav button{flex:1;border-radius:999px;padding:.85rem 0;font-size:.92rem;font-weight:600;text-align:center}
+  .answerNav button{flex:1;border-radius:14px;padding:.85rem 0;font-size:.92rem;font-weight:600;text-align:center}
   .answerNav .next{background:var(--ink);color:var(--paper)}
   .answerNav .back{border:1px solid var(--line);color:var(--sub)}
 
@@ -127,7 +127,7 @@
   }
   li.row .en{font-family:var(--en);font-size:1.05rem;font-weight:600}
   li.row .ja{font-size:.82rem;color:var(--sub);margin-left:auto;text-align:right}
-  li.row .restore{border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.74rem;color:var(--sub);margin-left:auto}
+  li.row .restore{border:1px solid var(--line);border-radius:8px;padding:.3rem .8rem;font-size:.74rem;color:var(--sub);margin-left:auto}
   .tally{display:flex;flex-direction:column;gap:.55rem;margin-top:1.2rem}
   .tally div{display:flex;align-items:center;gap:.7rem;font-size:.92rem}
   .tally i{width:.6rem;height:.6rem;border-radius:50%;font-style:normal}
@@ -135,14 +135,14 @@
   .empty{color:var(--sub);font-size:.88rem;padding:.9rem .1rem}
 
   /* ---------- 内訳バー ---------- */
-  .bar{display:flex;height:.9rem;border-radius:999px;overflow:hidden;background:var(--line);margin-top:1.3rem;width:100%}
+  .bar{display:flex;height:.9rem;border-radius:6px;overflow:hidden;background:var(--line);margin-top:1.3rem;width:100%}
   .bar span{height:100%}
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
 
   /* ---------- 出題数ボタン ---------- */
   .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
   .size{
-    flex:1;background:var(--ink);color:var(--paper);border-radius:999px;
+    flex:1;background:var(--ink);color:var(--paper);border-radius:14px;
     padding:.9rem 0;font-size:.95rem;font-weight:600;letter-spacing:.04em;text-align:center;
   }
 </style>
