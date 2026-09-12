@@ -39,6 +39,7 @@
   .screen h2{font-size:.78rem;font-weight:600;letter-spacing:.16em;color:var(--sub);margin:1.6rem 0 .5rem}
   .lead{color:var(--sub);font-size:.92rem;line-height:1.9;margin-top:.6rem}
   .grow{flex:1}
+  .grow-lg{flex:2}   /* 上の余白を厚めにして出題ボタンを下寄りの届きやすい位置に */
   .big{font-family:var(--en);font-size:3.4rem;font-weight:600;line-height:1;letter-spacing:-.02em}
   .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;margin-top:1.3rem;width:100%}
   .stat b{display:block;font-family:var(--en);font-size:1.6rem;font-weight:600;line-height:1;white-space:nowrap}
@@ -65,8 +66,8 @@
     align-self:stretch;margin-top:1.2rem;
   }
   .ghost{
-    border:1px solid var(--line);border-radius:14px;padding:.7rem 1.3rem;
-    font-size:.86rem;color:var(--sub);margin-top:.7rem;
+    padding:.7rem 1.3rem;font-size:.78rem;
+    color:var(--sub);opacity:.65;margin-top:.7rem;
   }
 
   /* ---------- header ---------- */
@@ -200,12 +201,13 @@
       <button class="stat" type="button" data-cat="excluded"><b id="statPerfect">0</b><span>完璧</span></button>
     </div>
     <div class="bar" id="overviewBar"></div>
-    <div class="grow"></div>
+    <div class="grow grow-lg"></div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
       <button class="size" type="button" data-size="10">10問</button>
       <button class="size" type="button" data-size="20">20問</button>
     </div>
+    <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
   </section>
 
