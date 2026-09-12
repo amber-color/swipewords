@@ -26,7 +26,7 @@
     overflow:hidden;-webkit-font-smoothing:antialiased;
     user-select:none;-webkit-user-select:none;
   }
-  #app{position:relative;height:100dvh;max-width:560px;margin:0 auto;display:flex;flex-direction:column}
+  #app{position:relative;height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column}
 
   /* ---------- screens ---------- */
   .screen{
@@ -627,8 +627,12 @@ $('undo').onclick = () => {
   undoLast();
   render();
 };
-$('ansNext').onclick = () => { closeAnswer(); };
-$('ansBack').onclick = () => { undoLast(); closeAnswer(); };
+// iOSは表示直後の要素へのclickを取りこぼすので、指を離した時点で直接処理する
+function onTap(el, fn){
+  el.addEventListener('pointerup', e => { e.preventDefault(); fn(); });
+}
+onTap($('ansNext'), () => { closeAnswer(); });
+onTap($('ansBack'), () => { undoLast(); closeAnswer(); });
 
 /* ============ 結果 ============ */
 function finish(){
