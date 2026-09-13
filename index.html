@@ -98,6 +98,7 @@
     will-change:transform,opacity;touch-action:none;
   }
   .card .meaning{font-size:clamp(1.6rem,7vw,2.3rem);font-weight:600;line-height:1.45}
+  .card .meaning.en{font-family:var(--en);font-size:clamp(1.9rem,9vw,2.9rem);letter-spacing:-.01em}
 
   .stamp{
     position:absolute;top:1.4rem;left:50%;transform:translateX(-50%);
@@ -131,7 +132,9 @@
   }
   #answer.show{display:flex}
   #answer .word{font-family:var(--en);font-size:clamp(2.2rem,11vw,3.4rem);font-weight:600;letter-spacing:-.02em}
+  #answer .word.ja{font-family:var(--jp);font-size:clamp(1.7rem,8vw,2.6rem);letter-spacing:0;line-height:1.4}
   #answer .meaning2{font-size:.95rem;color:var(--sub)}
+  #answer .word.ja + .meaning2{font-family:var(--en);font-size:1.05rem}
   .answerNav{display:flex;gap:.6rem;margin-top:1rem;width:100%;padding:0 1.6rem}
   .answerNav button{flex:1;border-radius:14px;padding:.85rem 0;font-size:.92rem;font-weight:600;text-align:center}
   .answerNav .next{background:var(--ink);color:var(--paper)}
@@ -162,6 +165,14 @@
   .forecast span{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--sub);opacity:.45}
   .forecast span.today{background:var(--ink);opacity:1}
   .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
+
+  /* ---------- 出題の向き ---------- */
+  .modeToggle{display:flex;gap:.4rem}
+  .modeToggle button{
+    padding:.45rem 1rem;font-size:.78rem;letter-spacing:.04em;
+    border:1px solid var(--line);border-radius:10px;color:var(--sub);
+  }
+  .modeToggle button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
   /* ---------- 出題数ボタン ---------- */
   .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
@@ -213,6 +224,10 @@
     <div class="forecast" id="forecast"></div>
     <div class="forecastAxis"><span id="forecastToday">今日</span><span>2週間後</span></div>
     <div class="grow"></div>
+    <div class="modeToggle" id="modeToggle">
+      <button type="button" data-mode="ja2en">日 → 英</button>
+      <button type="button" data-mode="en2ja">英 → 日</button>
+    </div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
       <button class="size" type="button" data-size="10">10問</button>
@@ -323,6 +338,7 @@ const JA = Object.fromEntries(WORDS);
 
 /* ============ 保存 ============ */
 const KEY = 'tango-swipe-v1';
+const MODE_KEY = 'tango-swipe-mode';   // 出題の向き。既定は日→英
 const DAY = 86400000;
 // 未知・忘却は日を置かずに再出題する。既知だけ連続正解の回数ぶん間隔を延ばす
 const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
@@ -337,6 +353,20 @@ function knownDelay(streak){
 
 let store = load();
 save();
+
+// 'ja2en' = 日本語を見て英単語を思い出す（既定） / 'en2ja' = 英単語を見て意味を思い出す
+let quizMode = (() => {
+  try{ return localStorage.getItem(MODE_KEY) === 'en2ja' ? 'en2ja' : 'ja2en'; }catch(e){ return 'ja2en'; }
+})();
+function setMode(m){
+  quizMode = m;
+  try{ localStorage.setItem(MODE_KEY, m); }catch(e){}
+  renderModeToggle();
+}
+function renderModeToggle(){
+  for(const b of $('modeToggle').children) b.classList.toggle('on', b.dataset.mode === quizMode);
+}
+
 function load(){
   let s;
   try{ s = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ s = {}; }
@@ -552,9 +582,10 @@ function render(){
     const en = queue[i];
     const el = document.createElement('div');
     el.className = 'card';
+    const showEn = quizMode === 'en2ja';
     el.innerHTML =
       `<div class="stamp"></div>` +
-      `<div class="meaning">${JA[en]}</div>`;
+      `<div class="meaning${showEn ? ' en' : ''}">${showEn ? en : JA[en]}</div>`;
     deck.appendChild(el);
     const c = { el, st:{ x:0, y:REST[i].y, rot:0, sc:REST[i].sc, op:REST[i].op }, anim:{} };
     paint(c);
@@ -698,9 +729,12 @@ function commit(en, dir){
 
 /* ============ 答えの表示（次へ/戻るを押すまで進まない） ============ */
 function flashAnswer(en, dir){
-  $('ansWord').textContent = en;
+  // 出題面の反対側を答えとして大きく出す
+  const showJa = quizMode === 'en2ja';
+  $('ansWord').textContent = showJa ? JA[en] : en;
+  $('ansWord').classList.toggle('ja', showJa);
   $('ansWord').style.color = COLOR[dir];
-  $('ansMeaning').textContent = JA[en];
+  $('ansMeaning').textContent = showJa ? en : JA[en];
   answer.classList.add('show');
 }
 function closeAnswer(){
@@ -750,6 +784,10 @@ function finish(){
 }
 
 /* ============ ボタン ============ */
+$('modeToggle').onclick = e => {
+  const b = e.target.closest('button[data-mode]');
+  if(b) setMode(b.dataset.mode);
+};
 $('sizeButtons').onclick = e => {
   const b = e.target.closest('button[data-size]');
   if(!b) return;
@@ -780,6 +818,7 @@ $('resetBtn').onclick = () => {
   store = {}; save(); renderHome();
 };
 
+renderModeToggle();
 show('home');
 </script>
 </body>
