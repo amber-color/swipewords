@@ -389,6 +389,12 @@ function load(){
     }
     // 出題・正解の記録がない古いデータは0から数え始める
     if(e.seen === undefined){ e.seen = 0; e.correct = 0; e.streak = 0; }
+    // 旧設定（未知1日後・忘却2日後・既知5日後）で書かれた期限を今のルールに合わせ直す。
+    // 今のルールなら due は必ずこの値になるので、違えば古いデータと判断できる
+    if(!e.excluded && e.lastDir){
+      const want = e.lastSwipe + (e.lastDir === 'right' ? knownDelay(e.streak) : 0);
+      if(e.due !== want) e.due = want;
+    }
   }
   return s;
 }
@@ -715,8 +721,9 @@ function commit(en, dir){
   const e = entry(en);
   queue.shift();
 
+  const now = Date.now();   // dueとlastSwipeは同じ時刻から導く（起動時の照合で1msのズレも出さないため）
   e.lastDir = dir;
-  e.lastSwipe = Date.now();
+  e.lastSwipe = now;
   e.seen++;
   // 既知・完璧を正解とみなす。連続正解が切れたらstreakは0に戻す
   if(dir === 'right' || dir === 'up'){ e.correct++; e.streak++; }
@@ -726,7 +733,7 @@ function commit(en, dir){
     e.excluded = true;
   }else{
     // 未知・忘却は即座に、既知は連続正解に応じて先送り
-    e.due = Date.now() + (dir === 'right' ? knownDelay(e.streak) : 0);
+    e.due = now + (dir === 'right' ? knownDelay(e.streak) : 0);
   }
   counts[dir]++;
   results.set(en, dir);
@@ -814,10 +821,11 @@ $('wordListItems').onclick = e => {
   if(!b) return;
   const en = b.dataset.en;
   const rec = entry(en);   // 出題・正解の記録は残したまま既知に戻す
-  rec.due = Date.now() + knownDelay(rec.streak);
+  const now = Date.now();
+  rec.due = now + knownDelay(rec.streak);
   rec.excluded = false;
   rec.lastDir = 'right';
-  rec.lastSwipe = Date.now();
+  rec.lastSwipe = now;
   save();
   showWordList('excluded');
 };
