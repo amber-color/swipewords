@@ -94,7 +94,7 @@
     position:absolute;inset:0;background:var(--card);
     border:1px solid var(--line);border-radius:22px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:2rem 1.6rem;text-align:center;
+    padding:2rem 2.1rem;text-align:center;   /* 長い訳がカードの縁に寄りすぎないように */
     box-shadow:0 1px 2px rgba(34,32,27,.05);
     will-change:transform,opacity;touch-action:none;
   }
@@ -133,7 +133,11 @@
   }
   #answer.show{display:flex}
   #answer .word,
-  #answer .meaning2{cursor:pointer}   /* タップで読み直せる */
+  #answer .meaning2{
+    cursor:pointer;                  /* タップで読み直せる */
+    max-width:calc(100% - 4rem);     /* 訳が長くても画面端まで伸ばさない */
+    padding:.15rem 0;                /* タップ範囲を少し広げる */
+  }
   #answer .word{font-family:var(--en);font-size:clamp(2.2rem,11vw,3.4rem);font-weight:600;letter-spacing:-.02em}
   #answer .word.ja{font-family:var(--jp);font-size:clamp(1.7rem,8vw,2.6rem);letter-spacing:0;line-height:1.4}
   #answer .meaning2{font-size:.95rem;color:var(--sub)}
@@ -249,7 +253,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-13a</p>
+    <p class="build">ver. 2026-09-13b</p>
   </section>
 
   <!-- 結果 -->
