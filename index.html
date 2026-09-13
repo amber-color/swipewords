@@ -174,6 +174,13 @@
     transition:background .15s linear, color .15s linear;
   }
   .modeToggle button.on{background:var(--ink);color:var(--paper)}
+  .ctrlRow{display:flex;gap:.5rem;align-items:center}
+  .soundBtn{
+    padding:.5rem .9rem;font-size:.78rem;letter-spacing:.04em;color:var(--sub);
+    border:1px solid var(--line);border-radius:10px;
+    transition:background .15s linear, color .15s linear;
+  }
+  .soundBtn.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
   /* ---------- 出題数ボタン ---------- */
   .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
@@ -225,9 +232,12 @@
     <div class="forecast" id="forecast"></div>
     <div class="forecastAxis"><span id="forecastToday">今日</span><span>2週間後</span></div>
     <div class="grow"></div>
-    <div class="modeToggle" id="modeToggle">
-      <button type="button" data-mode="ja2en">日 → 英</button>
-      <button type="button" data-mode="en2ja">英 → 日</button>
+    <div class="ctrlRow">
+      <div class="modeToggle" id="modeToggle">
+        <button type="button" data-mode="ja2en">日 → 英</button>
+        <button type="button" data-mode="en2ja">英 → 日</button>
+      </div>
+      <button class="soundBtn" id="speakToggle" type="button">音声オン</button>
     </div>
     <div class="sizes" id="sizeButtons">
       <button class="size" type="button" data-size="5">5問</button>
@@ -530,6 +540,7 @@ const JA = Object.fromEntries(WORDS);
 /* ============ 保存 ============ */
 const KEY = 'tango-swipe-v1';
 const MODE_KEY = 'tango-swipe-mode';   // 出題の向き。既定は日→英
+const SPEAK_KEY = 'tango-swipe-speak'; // 答えの読み上げ。既定はオン
 const DAY = 86400000;
 // 未知・忘却は日を置かずに再出題する。既知だけ連続正解の回数ぶん間隔を延ばす
 const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
@@ -563,6 +574,52 @@ function setMode(m){
 }
 function renderModeToggle(){
   for(const b of $('modeToggle').children) b.classList.toggle('on', b.dataset.mode === quizMode);
+}
+
+/* ============ 答えの読み上げ（ブラウザ内蔵のTTS） ============ */
+let speakOn = (() => {
+  try{ return localStorage.getItem(SPEAK_KEY) !== 'off'; }catch(e){ return true; }
+})();
+const canSpeak = typeof speechSynthesis !== 'undefined';
+let enVoice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  enVoice = vs.find(v => /^en[-_]US/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null;
+}
+if(canSpeak){
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;   // 音声リストの読み込みが遅れる端末向け
+}
+// iOSは最初の発話がユーザー操作の中で起きないと以後ずっと無音になるので、開始時に無音で解錠する
+function unlockSpeech(){
+  if(!canSpeak) return;
+  try{
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speak(text){
+  if(!speakOn || !canSpeak) return;
+  try{
+    speechSynthesis.cancel();   // 連続でめくった時に読み上げが溜まらないように
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';           // 端末が日本語設定でも英語の声で読ませる
+    if(enVoice) u.voice = enVoice;
+    u.rate = .95;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function setSpeak(on){
+  speakOn = on;
+  try{ localStorage.setItem(SPEAK_KEY, on ? 'on' : 'off'); }catch(e){}
+  if(!on && canSpeak) try{ speechSynthesis.cancel(); }catch(e){}
+  renderSpeakToggle();
+}
+function renderSpeakToggle(){
+  const b = $('speakToggle');
+  b.textContent = speakOn ? '音声オン' : '音声オフ';
+  b.classList.toggle('on', speakOn);
 }
 
 function load(){
@@ -941,6 +998,7 @@ function flashAnswer(en, dir){
   $('ansWord').style.color = COLOR[dir];
   $('ansMeaning').textContent = showJa ? en : JA[en];
   answer.classList.add('show');
+  speak(en);   // 読み上げるのは向きに関わらず英単語の方
 }
 function closeAnswer(){
   answer.classList.remove('show');
@@ -996,9 +1054,11 @@ $('modeToggle').onclick = e => {
 $('sizeButtons').onclick = e => {
   const b = e.target.closest('button[data-size]');
   if(!b) return;
+  unlockSpeech();   // このタップがユーザー操作なので、ここで読み上げを解禁しておく
   const size = parseInt(b.dataset.size, 10);
   if(buildQueue(size).length) startSession(size);
 };
+$('speakToggle').onclick = () => { unlockSpeech(); setSpeak(!speakOn); };
 $('backHome').onclick = () => show('home');
 $('statRow').onclick = e => {
   const b = e.target.closest('button[data-cat]');
@@ -1025,6 +1085,7 @@ $('resetBtn').onclick = () => {
 };
 
 renderModeToggle();
+renderSpeakToggle();
 show('home');
 </script>
 </body>
