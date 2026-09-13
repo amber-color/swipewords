@@ -351,17 +351,24 @@ function knownDelay(streak){
   return KNOWN_STEPS[Math.min(Math.max(streak, 1), KNOWN_STEPS.length) - 1];
 }
 
-let store = load();
-save();
-
 // 'ja2en' = 日本語を見て英単語を思い出す（既定） / 'en2ja' = 英単語を見て意味を思い出す
+// 進捗はモードごとに別管理。load/save より先に決めておく必要がある
 let quizMode = (() => {
   try{ return localStorage.getItem(MODE_KEY) === 'en2ja' ? 'en2ja' : 'ja2en'; }catch(e){ return 'ja2en'; }
 })();
+// 日→英は従来のキーのまま。英→日だけ別キーに分ける
+function storeKey(){ return quizMode === 'en2ja' ? KEY + ':en2ja' : KEY; }
+
+let store = load();
+save();
+
 function setMode(m){
+  if(m === quizMode) return;
   quizMode = m;
   try{ localStorage.setItem(MODE_KEY, m); }catch(e){}
+  store = load();          // そのモードの進捗に差し替える
   renderModeToggle();
+  renderHome();            // 集計・予定グラフも切り替え後の数字にする
 }
 function renderModeToggle(){
   for(const b of $('modeToggle').children) b.classList.toggle('on', b.dataset.mode === quizMode);
@@ -369,7 +376,7 @@ function renderModeToggle(){
 
 function load(){
   let s;
-  try{ s = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ s = {}; }
+  try{ s = JSON.parse(localStorage.getItem(storeKey())) || {}; }catch(e){ s = {}; }
   // 開発中の仕様変更で lastDir を持たない古いデータを補完する
   // （stageが進んでいれば既知、それ以外は忘却だったとみなす）
   for(const en in s){
@@ -385,7 +392,7 @@ function load(){
   return s;
 }
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+  try{ localStorage.setItem(storeKey(), JSON.stringify(store)); }catch(e){}
 }
 function entry(en){
   if(!store[en]) store[en] = { due:0, excluded:false, lastDir:null, lastSwipe:0, seen:0, correct:0, streak:0 };
