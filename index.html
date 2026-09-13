@@ -131,6 +131,8 @@
     background:rgba(243,240,232,.96);
   }
   #answer.show{display:flex}
+  #answer .word,
+  #answer .meaning2{cursor:pointer}   /* タップで読み直せる */
   #answer .word{font-family:var(--en);font-size:clamp(2.2rem,11vw,3.4rem);font-weight:600;letter-spacing:-.02em}
   #answer .word.ja{font-family:var(--jp);font-size:clamp(1.7rem,8vw,2.6rem);letter-spacing:0;line-height:1.4}
   #answer .meaning2{font-size:.95rem;color:var(--sub)}
@@ -853,6 +855,8 @@ function render(){
     cards[i] = c;
   }
   attachDrag(cards[0], queue[0]);
+  // 英→日は英単語が問題面なので、カードが出た時点で読み上げる
+  if(quizMode === 'en2ja') speak(queue[0]);
 }
 
 /* ============ スワイプ ============ */
@@ -990,8 +994,10 @@ function commit(en, dir){
 }
 
 /* ============ 答えの表示（次へ/戻るを押すまで進まない） ============ */
+let answerWord = null;   // 答え画面でタップ再生する対象
 function flashAnswer(en, dir){
   // 出題面の反対側を答えとして大きく出す
+  answerWord = en;
   const showJa = quizMode === 'en2ja';
   $('ansWord').textContent = showJa ? JA[en] : en;
   $('ansWord').classList.toggle('ja', showJa);
@@ -1027,6 +1033,9 @@ function onTap(el, fn){
 }
 onTap($('ansNext'), () => { closeAnswer(); });
 onTap($('ansBack'), () => { undoLast(); closeAnswer(); });
+// 答えの文字をタップで読み直し。どちらを押しても読むのは英単語
+onTap($('ansWord'), () => { if(answerWord) speak(answerWord); });
+onTap($('ansMeaning'), () => { if(answerWord) speak(answerWord); });
 
 /* ============ 結果 ============ */
 function finish(){
