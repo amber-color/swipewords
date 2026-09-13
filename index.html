@@ -99,6 +99,12 @@
     will-change:transform,opacity;touch-action:none;
   }
   .card .meaning{font-size:clamp(1.6rem,7vw,2.3rem);font-weight:600;line-height:1.45}
+  /* 先頭カードの文字だけ、枠が着地したあとから浮かび上がらせる */
+  .card.front .meaning{animation:wordIn .18s cubic-bezier(.2,.7,.3,1) .05s both}
+  @keyframes wordIn{
+    from{opacity:0;transform:translateY(9px)}
+    to{opacity:1;transform:none}
+  }
   .card .meaning.en{font-family:var(--en);font-size:clamp(1.9rem,9vw,2.9rem);letter-spacing:-.01em}
 
   .stamp{
@@ -253,7 +259,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-13b</p>
+    <p class="build">ver. 2026-09-13c</p>
   </section>
 
   <!-- 結果 -->
@@ -832,6 +838,9 @@ function showWordList(key){
 const M = window.Motion;
 const clamp = (v,a,b) => Math.min(Math.max(v,a),b);
 const REST = [ {y:0,sc:1,op:1}, {y:14,sc:.955,op:.7}, {y:28,sc:.91,op:.4} ];
+// カードを出す時は一段後ろから始めて、山札が繰り上がったように見せる
+const ENTER = [ {y:14,sc:.955,op:.7}, {y:28,sc:.91,op:.4}, {y:42,sc:.865,op:.15} ];
+const RISE = { type:'spring', stiffness:620, damping:34, mass:.7 };
 
 let cards = [];        // [{el, st, anim}]
 let gesture = null;
@@ -863,15 +872,20 @@ function render(){
   for(let i = Math.min(2, queue.length - 1); i >= 0; i--){
     const en = queue[i];
     const el = document.createElement('div');
-    el.className = 'card';
+    el.className = i === 0 ? 'card front' : 'card';
     const showEn = quizMode === 'en2ja';
     el.innerHTML =
       `<div class="stamp"></div>` +
       `<div class="meaning${showEn ? ' en' : ''}">${showEn ? en : JA[en]}</div>`;
     deck.appendChild(el);
-    const c = { el, st:{ x:0, y:REST[i].y, rot:0, sc:REST[i].sc, op:REST[i].op }, anim:{} };
+    const c = { el, st:{ x:0, y:ENTER[i].y, rot:0, sc:ENTER[i].sc, op:ENTER[i].op }, anim:{} };
     paint(c);
     cards[i] = c;
+  }
+  for(let i = 0; i < cards.length; i++){
+    animTo(cards[i], 'y',  REST[i].y,  RISE);
+    animTo(cards[i], 'sc', REST[i].sc, RISE);
+    animTo(cards[i], 'op', REST[i].op, RISE);
   }
   attachDrag(cards[0], queue[0]);
   // 英→日は英単語が問題面なので、カードが出た時点で読み上げる
@@ -893,7 +907,7 @@ function attachDrag(card, en){
     const [mx, my] = s.movement;
 
     if(s.first){
-      stopAll(card);
+      cards.forEach(stopAll);   // せり上がり中に掴まれても指の動きが勝つように
       axis = null;
       const r = el.getBoundingClientRect();
       // カードの上半分を掴んだか下半分かで回転の向きが変わる
@@ -922,6 +936,9 @@ function attachDrag(card, en){
         animTo(card, 'x', 0, SPRING);
         animTo(card, 'y', 0, SPRING);
         animTo(card, 'rot', 0, SPRING);
+        // せり上がりの途中で掴まれていた場合、縮小と透明度もここで戻しておく
+        animTo(card, 'sc', REST[0].sc, SPRING);
+        animTo(card, 'op', REST[0].op, SPRING);
         springBehind();
       }
       return;
