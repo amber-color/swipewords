@@ -68,6 +68,7 @@
     padding:1rem 2rem;font-size:1rem;font-weight:600;letter-spacing:.06em;
     align-self:stretch;margin-top:1.2rem;
   }
+  .build{font-size:.62rem;color:var(--sub);opacity:.45;margin-top:.7rem;letter-spacing:.06em}
   .ghost{
     padding:.7rem 1.3rem;font-size:.78rem;
     color:var(--sub);opacity:.65;margin-top:.7rem;
@@ -248,6 +249,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
+    <p class="build">ver. 2026-09-13a</p>
   </section>
 
   <!-- 結果 -->
@@ -592,6 +594,7 @@ if(canSpeak){
   pickVoice();
   speechSynthesis.onvoiceschanged = pickVoice;   // 音声リストの読み込みが遅れる端末向け
 }
+let speakTimer = null, unlockAt = 0;
 // iOSは最初の発話がユーザー操作の中で起きないと以後ずっと無音になるので、開始時に無音で解錠する
 function unlockSpeech(){
   if(!canSpeak) return;
@@ -599,23 +602,35 @@ function unlockSpeech(){
     const u = new SpeechSynthesisUtterance(' ');
     u.volume = 0;
     speechSynthesis.speak(u);
+    unlockAt = Date.now();
   }catch(e){}
 }
-function speak(text){
-  if(!speakOn || !canSpeak) return;
+function say(text){
   try{
-    speechSynthesis.cancel();   // 連続でめくった時に読み上げが溜まらないように
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';           // 端末が日本語設定でも英語の声で読ませる
     if(enVoice) u.voice = enVoice;
     u.rate = .95;
+    speechSynthesis.resume();   // iOSはcancelの後に一時停止のまま止まっていることがある
     speechSynthesis.speak(u);
   }catch(e){}
+}
+function speak(text){
+  if(!speakOn || !canSpeak) return;
+  clearTimeout(speakTimer);
+  let busyNow = false;
+  try{ busyNow = speechSynthesis.speaking || speechSynthesis.pending; }catch(e){}
+  // 解錠用の無音をcancelで打ち消すと、iOSではその後ずっと鳴らなくなる
+  if(Date.now() - unlockAt < 500) busyNow = false;
+  if(!busyNow){ say(text); return; }
+  // iOSはcancelした直後のspeakを取りこぼすので、止めてから一拍おいて読み上げる
+  try{ speechSynthesis.cancel(); }catch(e){}
+  speakTimer = setTimeout(() => say(text), 180);
 }
 function setSpeak(on){
   speakOn = on;
   try{ localStorage.setItem(SPEAK_KEY, on ? 'on' : 'off'); }catch(e){}
-  if(!on && canSpeak) try{ speechSynthesis.cancel(); }catch(e){}
+  if(!on && canSpeak){ clearTimeout(speakTimer); try{ speechSynthesis.cancel(); }catch(e){} }
   renderSpeakToggle();
 }
 function renderSpeakToggle(){
