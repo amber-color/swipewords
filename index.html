@@ -167,12 +167,13 @@
   .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
 
   /* ---------- 出題の向き ---------- */
-  .modeToggle{display:flex;gap:.4rem}
+  /* 2つで1つのスイッチに見せる。枠は外側だけに持たせて中は塗り分け */
+  .modeToggle{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .modeToggle button{
-    padding:.45rem 1rem;font-size:.78rem;letter-spacing:.04em;
-    border:1px solid var(--line);border-radius:10px;color:var(--sub);
+    padding:.5rem 1.15rem;font-size:.78rem;letter-spacing:.04em;color:var(--sub);
+    transition:background .15s linear, color .15s linear;
   }
-  .modeToggle button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .modeToggle button.on{background:var(--ink);color:var(--paper)}
 
   /* ---------- 出題数ボタン ---------- */
   .sizes{display:flex;gap:.6rem;margin-top:1.2rem;width:100%}
