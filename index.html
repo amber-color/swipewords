@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>単語スワイプ</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#F3F0E8">
+<!-- iOSはmanifestを見ないので、ホーム画面用の指定を個別に置く -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="単語">
+<link rel="apple-touch-icon" href="./icon-180.png">
 <style>
   :root{
     --paper:#F3F0E8;
@@ -32,6 +39,8 @@
   .screen{
     position:absolute;inset:0;background:var(--paper);z-index:20;
     display:flex;flex-direction:column;padding:2rem 1.4rem;overflow-y:auto;
+    padding-top:calc(2rem + env(safe-area-inset-top));
+    padding-bottom:calc(2rem + env(safe-area-inset-bottom));
   }
   .screen[hidden]{display:none}
   #home{align-items:center;text-align:center}
@@ -78,6 +87,7 @@
   header{
     display:flex;align-items:center;gap:.8rem;
     padding:.9rem 1.1rem;font-size:.82rem;color:var(--sub);
+    padding-top:calc(.9rem + env(safe-area-inset-top));
   }
   header .count{font-variant-numeric:tabular-nums;letter-spacing:.08em}
   header .spacer{margin-left:auto}
@@ -118,6 +128,7 @@
   #legend{
     display:grid;grid-template-columns:1fr 1fr 1fr;
     gap:.3rem .5rem;padding:1rem 1.1rem 1.6rem;
+    padding-bottom:calc(1.6rem + env(safe-area-inset-bottom));
     font-size:.72rem;color:var(--sub);text-align:center;
   }
   #legend div{padding:.35rem .2rem;border-radius:8px;transition:background .12s,color .12s}
@@ -264,7 +275,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-15a</p>
+    <p class="build">ver. 2026-09-15b</p>
   </section>
 
   <!-- 結果 -->
@@ -1310,6 +1321,11 @@ $('sizeButtons').onclick = e => {
 };
 $('speakToggle').onclick = () => { unlockSpeech(); setSpeak(!speakOn); };
 $('backHome').onclick = () => show('home');
+
+// ホーム画面に置いた時、通信がなくても開けるようにしておく
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
 $('statRow').onclick = e => {
   const b = e.target.closest('button[data-cat]');
   if(!b) return;
