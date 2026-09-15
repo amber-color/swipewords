@@ -275,7 +275,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-15f</p>
+    <p class="build">ver. 2026-09-15g</p>
   </section>
 
   <!-- 結果 -->
@@ -788,7 +788,8 @@ function nextDay(t){
 }
 // 次にこの単語を出す時刻。commitと起動時の照合で必ず同じ式を使う
 function dueAfter(dir, at, streak){
-  return dir === 'right' ? at + knownDelay(streak) : nextDay(at);
+  if(dir === 'right') return at + knownDelay(streak);
+  return nextDay(at) + (dir === 'left' ? DAY : 0);   // 未知は翌日、忘却はもう1日置く
 }
 
 // 'ja2en' = 日本語を見て英単語を思い出す（既定） / 'en2ja' = 英単語を見て意味を思い出す
@@ -887,8 +888,8 @@ function load(){
     }
     // 出題・正解の記録がない古いデータは0から数え始める
     if(e.seen === undefined){ e.seen = 0; e.correct = 0; e.streak = 0; }
-    // 旧設定（未知1日後・忘却2日後・既知5日後）で書かれた期限を今のルールに合わせ直す。
-    // 今のルールなら due は必ずこの値になるので、違えば古いデータと判断できる
+    // 期限は lastDir と lastSwipe から必ず一意に決まる。値が違えば古いルールで
+    // 書かれたデータなので、今の式で計算し直す
     if(!e.excluded && e.lastDir){
       const want = dueAfter(e.lastDir, e.lastSwipe, e.streak);
       if(e.due !== want) e.due = want;
@@ -1243,7 +1244,7 @@ function commit(en, dir){
   if(dir === 'up'){
     e.excluded = true;
   }else{
-    // 未知・忘却は即座に、既知は連続正解に応じて先送り
+    // 未知は翌日、忘却は2日後、既知は連続正解に応じて先送り
     e.due = dueAfter(dir, now, e.streak);
   }
   counts[dir]++;
