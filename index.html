@@ -275,7 +275,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-15e</p>
+    <p class="build">ver. 2026-09-15f</p>
   </section>
 
   <!-- 結果 -->
@@ -780,6 +780,16 @@ const NEW_RATIO = 0.25;
 function knownDelay(streak){
   return KNOWN_STEPS[Math.min(Math.max(streak, 1), KNOWN_STEPS.length) - 1];
 }
+// 未知・忘却は同じ日に繰り返さず、翌日の頭から出す
+function nextDay(t){
+  const d = new Date(t);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() + DAY;
+}
+// 次にこの単語を出す時刻。commitと起動時の照合で必ず同じ式を使う
+function dueAfter(dir, at, streak){
+  return dir === 'right' ? at + knownDelay(streak) : nextDay(at);
+}
 
 // 'ja2en' = 日本語を見て英単語を思い出す（既定） / 'en2ja' = 英単語を見て意味を思い出す
 // 進捗はモードごとに別管理。load/save より先に決めておく必要がある
@@ -880,7 +890,7 @@ function load(){
     // 旧設定（未知1日後・忘却2日後・既知5日後）で書かれた期限を今のルールに合わせ直す。
     // 今のルールなら due は必ずこの値になるので、違えば古いデータと判断できる
     if(!e.excluded && e.lastDir){
-      const want = e.lastSwipe + (e.lastDir === 'right' ? knownDelay(e.streak) : 0);
+      const want = dueAfter(e.lastDir, e.lastSwipe, e.streak);
       if(e.due !== want) e.due = want;
     }
   }
@@ -1234,7 +1244,7 @@ function commit(en, dir){
     e.excluded = true;
   }else{
     // 未知・忘却は即座に、既知は連続正解に応じて先送り
-    e.due = now + (dir === 'right' ? knownDelay(e.streak) : 0);
+    e.due = dueAfter(dir, now, e.streak);
   }
   counts[dir]++;
   results.set(en, dir);
