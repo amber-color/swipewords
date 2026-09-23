@@ -191,8 +191,13 @@
 
   /* ---------- 今後の出題予定 ---------- */
   .forecast{display:flex;align-items:flex-end;gap:2px;height:56px;width:100%;margin-top:1.5rem}
-  .forecast span{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--sub);opacity:.45}
-  .forecast span.today{background:var(--ink);opacity:1}
+  /* 1日分が1本の積み上げ棒。column-reverseなので並びの先頭が一番下に来る */
+  .forecast span{
+    flex:1;min-height:2px;border-radius:3px 3px 0 0;overflow:hidden;
+    display:flex;flex-direction:column-reverse;background:var(--line);opacity:.8;
+  }
+  .forecast span.today{opacity:1}
+  .forecast span i{display:block;width:100%}
   .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
 
   /* ---------- 出題の向き ---------- */
@@ -275,7 +280,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-15g</p>
+    <p class="build">ver. 2026-09-23a</p>
   </section>
 
   <!-- 結果 -->
@@ -1026,22 +1031,31 @@ function renderHome(){
 // 今後2週間、何語が再出題になるかを日ごとに数える
 // 未出題は予定が無いので含めない。期限切れは今日にまとめ、2週間より先は出さない
 const FORECAST_DAYS = 15;   // 今日から2週間後まで（両端を含めて15本）
+// 積み上げる順。先頭が棒の一番下
+const FORECAST_STACK = ['down', 'left', 'right'];   // 未知・忘却・既知
 function renderForecast(){
   const today = new Date(); today.setHours(0,0,0,0);
-  const days = new Array(FORECAST_DAYS).fill(0);
+  const days = Array.from({ length: FORECAST_DAYS }, () => ({ down:0, left:0, right:0, total:0 }));
   for(const [en] of WORDS){
     const e = store[en];
     if(!e || e.excluded || !e.lastDir) continue;
     const d = Math.floor((e.due - today.getTime()) / DAY);
     if(d >= FORECAST_DAYS) continue;
-    days[Math.max(d, 0)]++;
+    const bucket = days[Math.max(d, 0)];
+    if(bucket[e.lastDir] === undefined) continue;
+    bucket[e.lastDir]++;
+    bucket.total++;
   }
   // 全部同じ目盛りで描く。少ない日が潰れないよう、0でなければ最低限の高さを持たせる
-  const scale = Math.max(...days, 1);
-  $('forecast').innerHTML = days.map((n, i) =>
-    `<span class="${i === 0 ? 'today' : ''}" style="height:${n ? Math.max(n / scale * 100, 14) : 0}%"></span>`
-  ).join('');
-  $('forecastToday').textContent = days[0] ? `今日 ${days[0]}語` : '今日';
+  const scale = Math.max(...days.map(b => b.total), 1);
+  $('forecast').innerHTML = days.map((b, i) => {
+    const h = b.total ? Math.max(b.total / scale * 100, 14) : 0;
+    // 色は内訳の数字やバーと同じものを使う
+    const segs = FORECAST_STACK.map(k => b[k]
+      ? `<i style="height:${b[k] / b.total * 100}%;background:${CATEGORIES[k].color}"></i>` : '').join('');
+    return `<span class="${i === 0 ? 'today' : ''}" style="height:${h}%">${segs}</span>`;
+  }).join('');
+  $('forecastToday').textContent = days[0].total ? `今日 ${days[0].total}語` : '今日';
 }
 
 let wordListKey = null;
