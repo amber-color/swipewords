@@ -286,7 +286,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11d</p>
+    <p class="build">ver. 2026-10-11e</p>
   </section>
 
   <!-- 結果 -->
@@ -995,6 +995,10 @@ function buildQueue(size){
   for(const k in pools) shuffle(pools[k]);
 
   const want = quotaFor(size);
+  // 期限が来ている復習がこの回の出題数を超えるなら、今日は積み残しの消化が先。
+  // 新しい語は出さず、その枠は既知に回す
+  const reviewDue = pools.down.length + pools.left.length + pools.right.length;
+  if(reviewDue > size){ want.right += want.new; want.new = 0; }
   const list = [];
   for(const [k] of QUOTA) list.push(...pools[k].splice(0, want[k]));
 
