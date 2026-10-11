@@ -286,7 +286,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11e</p>
+    <p class="build">ver. 2026-10-11f</p>
   </section>
 
   <!-- 結果 -->
@@ -789,6 +789,20 @@ const PRIORITY = { down:1, left:2, right:3 };
 // 並び順は、枠が余った時に埋める優先順でもある
 const QUOTA = [['down', 5], ['left', 3], ['right', 1], ['new', 1]];
 const QUOTA_TOTAL = QUOTA.reduce((a, [, n]) => a + n, 0);
+// 今日の積み残し（期限が今日まで）がこの数以上のあいだは、新しい語を出さない
+const BACKLOG_LIMIT = 200;
+// ホーム画面の予定グラフの「今日」と同じ数え方
+function todayBacklog(){
+  const end = new Date(Date.now()); end.setHours(0, 0, 0, 0);
+  const limit = end.getTime() + DAY;
+  let n = 0;
+  for(const [en] of WORDS){
+    const e = store[en];
+    if(!e || e.excluded || !e.lastDir) continue;
+    if(e.due < limit) n++;
+  }
+  return n;
+}
 
 // 割り切れない出題数は、どの分類も取りこぼさないよう配分を直接決める
 const QUOTA_OVERRIDE = { 5: { down:3, left:1, right:1, new:0 } };
@@ -995,10 +1009,8 @@ function buildQueue(size){
   for(const k in pools) shuffle(pools[k]);
 
   const want = quotaFor(size);
-  // 期限が来ている復習がこの回の出題数を超えるなら、今日は積み残しの消化が先。
-  // 新しい語は出さず、その枠は既知に回す
-  const reviewDue = pools.down.length + pools.left.length + pools.right.length;
-  if(reviewDue > size){ want.right += want.new; want.new = 0; }
+  // 積み残しが多いあいだは消化が先。新しい語は出さず、その枠は既知に回す
+  if(todayBacklog() >= BACKLOG_LIMIT){ want.right += want.new; want.new = 0; }
   const list = [];
   for(const [k] of QUOTA) list.push(...pools[k].splice(0, want[k]));
 
