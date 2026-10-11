@@ -190,7 +190,14 @@
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
 
   /* ---------- 今後の出題予定 ---------- */
-  .forecast{display:flex;align-items:flex-end;gap:2px;height:56px;width:100%;margin-top:1.5rem}
+  /* 棒は件数に比例させるので、日ごとの差を見分けられるだけの高さが要る。
+     ホーム画面の高さから他の部品と余白(34px×3)を引いた残りを充てる */
+  #home{container-type:size}
+  .forecast{
+    display:flex;align-items:flex-end;gap:2px;width:100%;margin-top:1.5rem;
+    height:56px;                                          /* cqh非対応の端末向け */
+    height:clamp(56px, calc(100cqh - 516px), 160px);
+  }
   /* 1日分が1本の積み上げ棒。column-reverseなので並びの先頭が一番下に来る */
   .forecast span{
     flex:1;min-height:2px;border-radius:3px 3px 0 0;overflow:hidden;
@@ -279,7 +286,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11c</p>
+    <p class="build">ver. 2026-10-11d</p>
   </section>
 
   <!-- 結果 -->
@@ -1071,10 +1078,11 @@ function renderForecast(){
     bucket[e.lastDir]++;
     bucket.total++;
   }
-  // 全部同じ目盛りで描く。少ない日が潰れないよう、0でなければ最低限の高さを持たせる
+  // 全部同じ目盛りで、件数に比例した高さにする。少ない日もかさ上げしない
+  // （1語でも見えなくならないよう、CSSのmin-heightだけが効く）
   const scale = Math.max(...days.map(b => b.total), 1);
   $('forecast').innerHTML = days.map((b, i) => {
-    const h = b.total ? Math.max(b.total / scale * 100, 14) : 0;
+    const h = b.total / scale * 100;
     // 色は内訳の数字やバーと同じものを使う
     const segs = FORECAST_STACK.map(k => b[k]
       ? `<i style="height:${b[k] / b.total * 100}%;background:${CATEGORIES[k].color}"></i>` : '').join('');
