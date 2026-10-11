@@ -286,7 +286,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11f</p>
+    <p class="build">ver. 2026-10-11g</p>
   </section>
 
   <!-- 結果 -->
@@ -780,6 +780,7 @@ const JA = Object.fromEntries(WORDS);
 const KEY = 'tango-swipe-v1';
 const MODE_KEY = 'tango-swipe-mode';   // 出題の向き。既定は日→英
 const SPEAK_KEY = 'tango-swipe-speak'; // 答えの読み上げ。既定はオン
+const LOG_KEY = 'tango-swipe-log';     // 日ごとの出題数 { 'YYYY-MM-DD': { ja2en:n, en2ja:n } }
 const DAY = 86400000;
 // 未知・忘却は日を置かずに再出題する。既知だけ連続正解の回数ぶん間隔を延ばす
 const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
@@ -918,6 +919,27 @@ function renderSpeakToggle(){
   const b = $('speakToggle');
   b.textContent = speakOn ? '音声オン' : '音声オフ';
   b.classList.toggle('on', speakOn);
+}
+
+/* ============ 日ごとの出題数の記録 ============ */
+// 進捗とは別に持つ。進捗のリセットでは消さない（やった事実は残す）。
+// 向きごとに数えるので、合算も片方だけも後から出せる
+let activity = (() => {
+  try{
+    const v = JSON.parse(localStorage.getItem(LOG_KEY));
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  }catch(e){ return {}; }
+})();
+function dayKey(t){
+  const d = new Date(t);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// delta=+1で1問分を足し、-1で取り消す
+function logActivity(day, mode, delta){
+  const rec = activity[day] || (activity[day] = {});
+  rec[mode] = Math.max(0, (rec[mode] || 0) + delta);
+  if(!rec.ja2en && !rec.en2ja) delete activity[day];   // 0になった日は残さない
+  try{ localStorage.setItem(LOG_KEY, JSON.stringify(activity)); }catch(e){}
 }
 
 function load(){
@@ -1284,19 +1306,23 @@ function commit(en, dir){
   busy = true;
   $('undo').disabled = true;
 
+  const now = Date.now();   // dueとlastSwipeは同じ時刻から導く（起動時の照合で1msのズレも出さないため）
+  const day = dayKey(now);
+
   // 戻る用スナップショット（この操作の「直前」を保存）
   history.push({
     queue: queue.slice(),
     counts: { ...counts },
     results: [...results],
-    en, data: { ...entry(en) }
+    en, data: { ...entry(en) },
+    day, mode: quizMode
   });
   if(history.length > 10) history.shift();
 
   const e = entry(en);
   queue.shift();
+  logActivity(day, quizMode, +1);
 
-  const now = Date.now();   // dueとlastSwipeは同じ時刻から導く（起動時の照合で1msのズレも出さないため）
   e.lastDir = dir;
   e.lastSwipe = now;
   e.seen++;
@@ -1345,6 +1371,7 @@ function undoLast(){
   results = new Map(h.results);
   store[h.en] = h.data;
   save();
+  if(h.day) logActivity(h.day, h.mode, -1);   // 取り消した問題は数えない
 }
 $('undo').onclick = () => {
   if(busy || !history.length) return;
