@@ -59,6 +59,7 @@
   #home.animate .lead,
   #home.animate .stat,
   #home.animate .bar,
+  #home.animate .heat,
   #home.animate .forecast,
   #home.animate .forecastAxis{ animation:riseIn .55s cubic-bezier(.2,.7,.3,1) both }
   #home.animate .lead{ animation-delay:.05s }
@@ -68,6 +69,7 @@
   #home.animate .stat:nth-child(4){ animation-delay:.35s }
   #home.animate .stat:nth-child(5){ animation-delay:.42s }
   #home.animate .bar{ animation-delay:.50s }
+  #home.animate .heat{ animation-delay:.535s }
   #home.animate .forecast{ animation-delay:.57s }
   #home.animate .forecastAxis{ animation-delay:.62s }
 
@@ -190,13 +192,29 @@
   .bar span:not(:first-child){border-left:2px solid var(--paper)}
 
   /* ---------- 今後の出題予定 ---------- */
+  /* ---------- 芝生(直近の出題数) ---------- */
+  /* 予定グラフと同じ15列・同じ隙間にして、縦のラインを揃える。
+     濃さは::beforeに重ねた--inkの透明度で出すので、色の定義は増やさない */
+  .heat{display:flex;gap:2px;width:100%;margin-top:.55rem}
+  .heat span{
+    flex:1 1 0;min-width:0;aspect-ratio:1;border-radius:5px;overflow:hidden;
+    position:relative;display:flex;align-items:center;justify-content:center;
+    background:var(--line);color:var(--ink);
+    font-size:clamp(7px,2.4vw,10px);line-height:1;font-weight:600;
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .heat span::before{content:'';position:absolute;inset:0;background:var(--ink);opacity:var(--a,0)}
+  .heat span b{position:relative;font-weight:inherit}
+  .heat span.dark{color:var(--paper)}
+
   /* 棒は件数に比例させるので、日ごとの差を見分けられるだけの高さが要る。
      ホーム画面の高さから他の部品と余白(34px×3)を引いた残りを充てる */
   #home{container-type:size}
   .forecast{
     display:flex;align-items:flex-end;gap:2px;width:100%;margin-top:1.5rem;
+    flex:none;                                            /* 画面が低い時は縮めず、ホームをスクロールさせる */
     height:56px;                                          /* cqh非対応の端末向け */
-    height:clamp(56px, calc(100cqh - 516px), 160px);
+    height:clamp(56px, calc(100cqh - 546px), 160px);
   }
   /* 1日分が1本の積み上げ棒。column-reverseなので並びの先頭が一番下に来る */
   .forecast span{
@@ -268,6 +286,7 @@
       <button class="stat" type="button" data-cat="excluded"><b id="statPerfect">0</b><span>完璧</span></button>
     </div>
     <div class="bar" id="overviewBar"></div>
+    <div class="heat" id="heat" aria-label="直近2週間の出題数"></div>
     <div class="grow"></div>
     <div class="forecast" id="forecast"></div>
     <div class="forecastAxis"><span id="forecastToday">今日</span><span>2週間後</span></div>
@@ -286,7 +305,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11g</p>
+    <p class="build">ver. 2026-10-11h</p>
   </section>
 
   <!-- 結果 -->
@@ -1090,6 +1109,7 @@ function renderHome(){
     if(count > 0) barHtml += `<span style="width:${count / total * 100}%;background:${cat.color}"></span>`;
   }
   $('overviewBar').innerHTML = barHtml;
+  renderHeat();
   renderForecast();
 
   // クラスを付け直してアニメーションを頭から再生する（間のreflowが必須）
@@ -1127,6 +1147,39 @@ function renderForecast(){
     return `<span class="${i === 0 ? 'today' : ''}" style="height:${h}%">${segs}</span>`;
   }).join('');
   $('forecastToday').textContent = days[0].total ? `今日 ${days[0].total}語` : '今日';
+}
+
+/* ============ 芝生: 直近の出題数 ============ */
+// 下の予定グラフと同じ列数にする。右端が今日、左端が14日前
+const HEAT_DAYS = FORECAST_DAYS;
+// 件数の多寡(0〜1)から、--inkを重ねる濃さを決める。
+// 0.43〜0.59は文字がどちらの色でも読みにくい(コントラスト4.5未満)ので避ける
+function heatAlpha(t){
+  const a = .14 + .74 * t;
+  if(a > .43 && a < .59) return a < .51 ? .43 : .59;
+  return a;
+}
+function heatLabel(n){
+  return n >= 1000 ? Math.round(n / 100) / 10 + 'k' : String(n);
+}
+function renderHeat(){
+  const base = new Date(Date.now());
+  base.setHours(0, 0, 0, 0);
+  const days = [];
+  for(let i = HEAT_DAYS - 1; i >= 0; i--){
+    const d = new Date(base);
+    d.setDate(d.getDate() - i);
+    const rec = activity[dayKey(d)] || {};
+    // 日→英と英→日を合わせた、その日にこなした問題数
+    days.push({ d, n: (rec.ja2en || 0) + (rec.en2ja || 0) });
+  }
+  const max = Math.max(...days.map(x => x.n), 0);
+  $('heat').innerHTML = days.map(({ d, n }) => {
+    const title = `${d.getMonth() + 1}/${d.getDate()}  ${n}問`;
+    if(!n) return `<span title="${title}"></span>`;   // 0の日は数字を出さず、一番薄い色のまま
+    const a = heatAlpha(n / max);
+    return `<span class="${a >= .51 ? 'dark' : ''}" style="--a:${a.toFixed(3)}" title="${title}"><b>${heatLabel(n)}</b></span>`;
+  }).join('');
 }
 
 let wordListKey = null;
