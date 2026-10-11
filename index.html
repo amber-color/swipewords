@@ -280,7 +280,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11a</p>
+    <p class="build">ver. 2026-10-11b</p>
   </section>
 
   <!-- 結果 -->
@@ -784,8 +784,12 @@ const PRIORITY = { down:1, left:2, right:3 };
 const QUOTA = [['down', 5], ['left', 3], ['right', 1], ['new', 1]];
 const QUOTA_TOTAL = QUOTA.reduce((a, [, n]) => a + n, 0);
 
+// 割り切れない出題数は、どの分類も取りこぼさないよう配分を直接決める
+const QUOTA_OVERRIDE = { 5: { down:3, left:1, right:1, new:0 } };
+
 // 割合をsize問に割り振る。端数は大きい順に配って合計を必ずsizeに合わせる
 function quotaFor(size){
+  if(QUOTA_OVERRIDE[size]) return { ...QUOTA_OVERRIDE[size] };
   const want = QUOTA.map(([k, n]) => {
     const exact = size * n / QUOTA_TOTAL;
     return { k, n: Math.floor(exact), rem: exact % 1 };
@@ -1000,6 +1004,7 @@ function buildQueue(size){
     rest.sort((a,b) => priority(a) - priority(b));
     list.push(...rest.slice(0, size - list.length));
   }
+  shuffle(list);   // 分類ごとの固まりで出ないように、最後に混ぜる
   return list;
 }
 
