@@ -194,9 +194,8 @@
   /* 1日分が1本の積み上げ棒。column-reverseなので並びの先頭が一番下に来る */
   .forecast span{
     flex:1;min-height:2px;border-radius:3px 3px 0 0;overflow:hidden;
-    display:flex;flex-direction:column-reverse;background:var(--line);opacity:.8;
+    display:flex;flex-direction:column-reverse;background:var(--line);
   }
-  .forecast span.today{opacity:1}
   .forecast span i{display:block;width:100%}
   .forecastAxis{display:flex;justify-content:space-between;width:100%;margin-top:.4rem;font-size:.62rem;color:var(--sub)}
 
@@ -280,7 +279,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-11b</p>
+    <p class="build">ver. 2026-10-11c</p>
   </section>
 
   <!-- 結果 -->
