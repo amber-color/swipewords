@@ -280,7 +280,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-09-23a</p>
+    <p class="build">ver. 2026-10-11a</p>
   </section>
 
   <!-- 結果 -->
@@ -779,8 +779,25 @@ const DAY = 86400000;
 const KNOWN_STEPS = [3*DAY, 7*DAY, 14*DAY, 30*DAY, 60*DAY];
 // 出題セットに入れる優先度: 未出題→未知→忘却→既知
 const PRIORITY = { down:1, left:2, right:3 };
-// 1セッションのうち未出題に回す割合の上限（20問なら5語）。残りは復習に使う
-const NEW_RATIO = 0.25;
+// 1セッションの配分。未知5・忘却3・既知1・未出題1 の割合で配る。
+// 並び順は、枠が余った時に埋める優先順でもある
+const QUOTA = [['down', 5], ['left', 3], ['right', 1], ['new', 1]];
+const QUOTA_TOTAL = QUOTA.reduce((a, [, n]) => a + n, 0);
+
+// 割合をsize問に割り振る。端数は大きい順に配って合計を必ずsizeに合わせる
+function quotaFor(size){
+  const want = QUOTA.map(([k, n]) => {
+    const exact = size * n / QUOTA_TOTAL;
+    return { k, n: Math.floor(exact), rem: exact % 1 };
+  });
+  let left = size - want.reduce((a, w) => a + w.n, 0);
+  // 端数が並んだ時はQUOTAの並び順（未知が先）が勝つ。sortが安定なのでこれで決まる
+  for(const w of want.slice().sort((a, b) => b.rem - a.rem)){
+    if(left <= 0) break;
+    w.n++; left--;
+  }
+  return Object.fromEntries(want.map(w => [w.k, w.n]));
+}
 // 連続正解1回目で3日、以降7/14/30日と延び、5回目以降は60日で頭打ち
 function knownDelay(streak){
   return KNOWN_STEPS[Math.min(Math.max(streak, 1), KNOWN_STEPS.length) - 1];
@@ -958,26 +975,30 @@ function priority(en){
 }
 
 function buildQueue(size){
-  const due = dueWords();
-  const fresh = due.filter(en => !store[en]);   // 未出題
-  const review = due.filter(en => store[en]);   // 復習（期限到来）
-  shuffle(fresh);
-  shuffle(review);
-  // 未知→忘却→既知。同じ優先度の中はシャッフル済みの順を保つ
-  review.sort((a,b) => priority(a) - priority(b));
+  // 期限が来ている語を分類ごとに分ける
+  const pools = { down:[], left:[], right:[], new:[] };
+  for(const en of dueWords()){
+    const e = store[en];
+    // lastDirが想定外の古いデータでも取りこぼさないよう既知の側に寄せる
+    pools[!e ? 'new' : (pools[e.lastDir] ? e.lastDir : 'right')].push(en);
+  }
+  for(const k in pools) shuffle(pools[k]);
 
-  // 未出題が大量にあっても復習が押し出されないよう、1セッションの新語数に上限を設ける
-  const cap = Math.max(1, Math.round(size * NEW_RATIO));
-  let list = fresh.slice(0, cap);
-  list = list.concat(review.slice(0, size - list.length));
-  // 復習が少ない時は残りを新語で埋める
-  if(list.length < size) list = list.concat(fresh.slice(cap, cap + size - list.length));
-  // それでも足りなければ、まだ期限前の単語を優先度順に補充
+  const want = quotaFor(size);
+  const list = [];
+  for(const [k] of QUOTA) list.push(...pools[k].splice(0, want[k]));
+
+  // 足りない分類があった分は、未知→忘却→既知→未出題 の順に余りで埋める
+  for(const [k] of QUOTA){
+    if(list.length >= size) break;
+    list.push(...pools[k].splice(0, size - list.length));
+  }
+  // それでも足りなければ、まだ期限前の単語を優先度順に繰り上げる
   if(list.length < size){
-    const rest = pendingWords();
+    const rest = pendingWords().filter(en => !list.includes(en));
     shuffle(rest);
     rest.sort((a,b) => priority(a) - priority(b));
-    list = list.concat(rest.slice(0, size - list.length));
+    list.push(...rest.slice(0, size - list.length));
   }
   return list;
 }
