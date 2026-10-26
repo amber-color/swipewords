@@ -1,5 +1,5 @@
 // バージョンを変えると古いキャッシュを捨てて入れ直す
-const CACHE = 'tango-2026-10-12b';
+const CACHE = 'tango-2026-10-26a';
 const SHELL = [
   './',
   './index.html',
