@@ -362,7 +362,7 @@
     </div>
     <div class="grow"></div>
     <button class="ghost" id="resetBtn" type="button">進捗をリセット</button>
-    <p class="build">ver. 2026-10-26b</p>
+    <p class="build">ver. 2026-10-26c</p>
   </section>
 
   <!-- 結果 -->
@@ -1772,7 +1772,7 @@ const EX = Object.fromEntries(WORDS.map(w => [w[0], [w[2], w[3]]]));
 // 日本語訳だけでは区別できない語に添える、使う場面のひと言（5番目の要素）
 const HINT = Object.fromEntries(WORDS.filter(w => w[4]).map(w => [w[0], w[4]]));
 const escHtml = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const jaHtml = en => escHtml(JA[en]) + (HINT[en] ? `<span class="hint">（${escHtml(HINT[en])}）</span>` : '');
+const jaHtml = en => escHtml(JA[en]) + (HINT[en] ? `<span class="hint">${escHtml(HINT[en])}</span>` : '');
 
 /* ============ 保存 ============ */
 const KEY = 'tango-swipe-v1';
